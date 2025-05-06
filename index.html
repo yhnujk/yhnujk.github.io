@@ -1,26 +1,3 @@
-<!-- Firebase Core (compat 버전) -->
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
-    authDomain: "capstone-cms-ee242.firebaseapp.com",
-    projectId: "capstone-cms-ee242",
-    storageBucket: "capstone-cms-ee242.firebasestorage.app",
-    messagingSenderId: "854989357781",
-    appId: "1:854989357781:web:f204fe38859cfc57e1585c",
-    measurementId: "G-7RZWYF7Z6R"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  console.log("✅ Firebase initialized:", firebase.app().name);
-</script>
-
-
-
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -28,7 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>키오스크 관리 대시보드</title>
   <link rel="stylesheet" href="style.css" />
+
+  <!-- 🔹 Firebase Core + Services (compat 버전) -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
+      authDomain: "capstone-cms-ee242.firebaseapp.com",
+      projectId: "capstone-cms-ee242",
+      storageBucket: "capstone-cms-ee242.firebasestorage.app",
+      messagingSenderId: "854989357781",
+      appId: "1:854989357781:web:f204fe38859cfc57e1585c",
+      measurementId: "G-7RZWYF7Z6R"
+    };
+
+    // ✅ Firebase 초기화
+    firebase.initializeApp(firebaseConfig);
+    console.log("✅ Firebase initialized:", firebase.app().name);
+  </script>
 </head>
+
 <body>
   <header>
     <h1>키오스크 관리 시스템</h1>
@@ -80,6 +79,7 @@
     </div>
   </section>
 
+  <!-- 🔸 별도 스크립트 (기능 구현용) -->
   <script src="script.js"></script>
 </body>
 </html>
