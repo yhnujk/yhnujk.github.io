@@ -1,3 +1,25 @@
+<!-- 필수: Firebase Core SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+
+<!-- 필요한 서비스만 골라서 추가 -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // Firebase 초기화
+  firebase.initializeApp(firebaseConfig);
+</script>
+
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
