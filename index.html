@@ -2,84 +2,93 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>키오스크 관리 대시보드</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>콘텐츠 관리 사이트</title>
+</head>
+<body>
+  <h1>콘텐츠 관리 대시보드</h1>
 
-  <!-- 🔹 Firebase Core + Services (compat 버전) -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <!-- 🔐 로그인 -->
+  <div>
+    <h2>관리자 로그인</h2>
+    <input type="email" id="email" placeholder="이메일" />
+    <input type="password" id="password" placeholder="비밀번호" />
+    <button onclick="login()">로그인</button>
+    <p id="user-info"></p>
+  </div>
+
+  <!-- 📤 콘텐츠 업로드 -->
+  <div id="upload-section" style="display:none;">
+    <h2>콘텐츠 업로드</h2>
+    <input type="file" id="fileInput" />
+    <input type="text" id="title" placeholder="제목" />
+    <input type="text" id="description" placeholder="설명" />
+    <button onclick="uploadFile()">업로드</button>
+    <p id="upload-status"></p>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
 
   <script>
+    // 🔧 Firebase 설정
     const firebaseConfig = {
-      apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
-      authDomain: "capstone-cms-ee242.firebaseapp.com",
-      projectId: "capstone-cms-ee242",
-      storageBucket: "capstone-cms-ee242.firebasestorage.app",
-      messagingSenderId: "854989357781",
-      appId: "1:854989357781:web:f204fe38859cfc57e1585c",
-      measurementId: "G-7RZWYF7Z6R"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
-
-    // ✅ Firebase 초기화
     firebase.initializeApp(firebaseConfig);
-    console.log("✅ Firebase initialized:", firebase.app().name);
+
+    const auth = firebase.auth();
+    const storage = firebase.storage();
+    const db = firebase.firestore();
+
+    // 🔐 로그인 함수
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          document.getElementById("user-info").innerText = "로그인 성공: " + email;
+          document.getElementById("upload-section").style.display = "block";
+        })
+        .catch(error => {
+          document.getElementById("user-info").innerText = "오류: " + error.message;
+        });
+    }
+
+    // 📤 파일 업로드 + 메타데이터 저장
+    function uploadFile() {
+      const file = document.getElementById("fileInput").files[0];
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+
+      if (!file) return alert("파일을 선택하세요.");
+
+      const storageRef = storage.ref("contents/" + file.name);
+      storageRef.put(file)
+        .then(snapshot => snapshot.ref.getDownloadURL())
+        .then(downloadURL => {
+          return db.collection("contents").add({
+            title,
+            description,
+            fileName: file.name,
+            fileUrl: downloadURL,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        })
+        .then(() => {
+          document.getElementById("upload-status").innerText = "업로드 완료!";
+        })
+        .catch(error => {
+          document.getElementById("upload-status").innerText = "오류: " + error.message;
+        });
+    }
   </script>
-</head>
-
-<body>
-  <header>
-    <h1>키오스크 관리 시스템</h1>
-    <nav>
-      <ul>
-        <li><a href="#dashboard">대시보드</a></li>
-        <li><a href="#kiosk">키오스크 관리</a></li>
-        <li><a href="#content">컨텐츠 관리</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <!-- 📊 대시보드 영역 -->
-  <section id="dashboard">
-    <h2>📊 대시보드</h2>
-    <div class="stats">
-      <div>등록된 키오스크 수: <span id="total-count">0</span></div>
-      <div>온라인 키오스크 수: <span id="online-count">0</span></div>
-      <div>오프라인 키오스크 수: <span id="offline-count">0</span></div>
-    </div>
-  </section>
-
-  <!-- 🖥 키오스크 관리 영역 -->
-  <section id="kiosk">
-    <h2>🖥 키오스크 관리</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>이름</th>
-          <th>상태</th>
-          <th>재부팅</th>
-          <th>알림 전송</th>
-        </tr>
-      </thead>
-      <tbody id="kiosk-table">
-        <!-- JS에서 동적 로딩 예정 -->
-      </tbody>
-    </table>
-  </section>
-
-  <!-- 📁 컨텐츠 관리 영역 -->
-  <section id="content">
-    <h2>📁 컨텐츠 관리</h2>
-    <input type="file" id="upload" multiple />
-    <button onclick="uploadFiles()">업로드</button>
-    <div id="file-list">
-      <!-- 업로드된 파일 목록 표시 -->
-    </div>
-  </section>
-
-  <!-- 🔸 별도 스크립트 (기능 구현용) -->
-  <script src="script.js"></script>
 </body>
 </html>
