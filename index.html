@@ -42,19 +42,7 @@
     const storage = firebase.storage();
     const db = firebase.firestore();
 
-    // 🔐 로그인 함수
-    function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then(userCredential => {
-          document.getElementById("user-info").innerText = "로그인 성공: " + email;
-          document.getElementById("upload-section").style.display = "block";
-        })
-        .catch(error => {
-          document.getElementById("user-info").innerText = "오류: " + error.message;
-        });
-    }
+
 
     // 📤 파일 업로드 + 메타데이터 저장
     function uploadFile() {
