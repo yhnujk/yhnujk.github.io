@@ -8,6 +8,7 @@
     body {
       margin: 0;
       font-family: sans-serif;
+      text-align: center;
     }
     header {
       position: relative;
@@ -39,6 +40,7 @@
       transition: left 0.3s ease;
       padding-top: 80px;
       z-index: 1000;
+      text-align: left;
     }
     #sidebar.active {
       left: 0;
@@ -59,12 +61,21 @@
     main {
       margin-left: 20px;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     section {
       display: none;
+      max-width: 600px;
+      width: 100%;
     }
     section.active {
       display: block;
+    }
+    input, button {
+      display: block;
+      margin: 10px auto;
     }
   </style>
 </head>
@@ -136,7 +147,7 @@
     function showSection(id) {
       document.querySelectorAll("main > section").forEach(s => s.classList.remove("active"));
       document.getElementById(id).classList.add("active");
-      document.getElementById("sidebar").classList.remove("active"); // 메뉴 닫기
+      document.getElementById("sidebar").classList.remove("active");
     }
 
     function uploadFile() {
