@@ -26,6 +26,7 @@
       background-color: rgba(0, 0, 0, 0.4);
       padding: 10px;
       border-radius: 5px;
+      z-index: 1100;
     }
     #sidebar {
       position: fixed;
@@ -76,14 +77,21 @@
 
   <nav id="sidebar">
     <ul>
+      <li><a onclick="showSection('home')">🏠 홈</a></li>
       <li><a onclick="showSection('dashboard')">📊 대시보드</a></li>
       <li><a onclick="showSection('upload')">📤 콘텐츠 업로드</a></li>
       <li><a onclick="showSection('status')">🖥 키오스크 상태</a></li>
+      <li><a onclick="toggleSidebar()">❌ 닫기</a></li>
     </ul>
   </nav>
 
   <main>
-    <section id="dashboard" class="active">
+    <section id="home" class="active">
+      <h2>🏠 홈페이지</h2>
+      <p>이곳은 콘텐츠 관리 웹사이트의 표지 화면입니다.</p>
+    </section>
+
+    <section id="dashboard">
       <h2>📊 대시보드</h2>
       <p>대시보드 내용이 여기에 표시됩니다.</p>
     </section>
@@ -128,6 +136,7 @@
     function showSection(id) {
       document.querySelectorAll("main > section").forEach(s => s.classList.remove("active"));
       document.getElementById(id).classList.add("active");
+      document.getElementById("sidebar").classList.remove("active"); // 메뉴 닫기
     }
 
     function uploadFile() {
