@@ -111,6 +111,23 @@
     .offline {
       background-color: red;
     }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fff;
+      padding: 20px;
+      margin: 15% auto;
+      width: 300px;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
@@ -152,12 +169,20 @@
 
     <section id="status">
       <h2>🖥 키오스크 관리</h2>
-      <input type="text" id="kioskOwner" placeholder="사용자 이름" />
-      <input type="text" id="kioskName" placeholder="키오스크 이름" />
-      <button onclick="registerKiosk()">➕ 키오스크 등록</button>
+      <button onclick="openModal()">➕ 키오스크 등록</button>
       <div id="kioskList">등록된 키오스크가 없습니다.</div>
     </section>
   </main>
+
+  <div id="kioskModal" class="modal">
+    <div class="modal-content">
+      <h3>키오스크 등록</h3>
+      <input type="text" id="kioskOwner" placeholder="사용자 이름" />
+      <input type="text" id="kioskName" placeholder="키오스크 이름" />
+      <button onclick="registerKiosk()">등록</button>
+      <button onclick="closeModal()">취소</button>
+    </div>
+  </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
@@ -186,6 +211,14 @@
       document.getElementById(id).classList.add("active");
       document.getElementById("sidebar").classList.remove("active");
       if (id === 'status') loadKiosks();
+    }
+
+    function openModal() {
+      document.getElementById("kioskModal").style.display = "block";
+    }
+
+    function closeModal() {
+      document.getElementById("kioskModal").style.display = "none";
     }
 
     function uploadFile() {
@@ -230,6 +263,7 @@
       }).then(() => {
         document.getElementById("kioskOwner").value = "";
         document.getElementById("kioskName").value = "";
+        closeModal();
         loadKiosks();
       }).catch(error => {
         alert("등록 실패: " + error.message);
@@ -242,11 +276,18 @@
 
       db.collection("kiosks").orderBy("owner").get()
         .then(snapshot => {
+          if (snapshot.empty) {
+            listDiv.innerHTML = "등록된 키오스크가 없습니다.";
+            return;
+          }
           const grouped = {};
           snapshot.forEach(doc => {
             const data = doc.data();
-            if (!grouped[data.owner]) grouped[data.owner] = [];
-            grouped[data.owner].push({ name: data.name, status: data.status });
+            const owner = data.owner || "이름 없음";
+            const name = data.name || "이름 없음";
+            const status = data.status || "offline";
+            if (!grouped[owner]) grouped[owner] = [];
+            grouped[owner].push({ name, status });
           });
 
           let html = "";
@@ -258,7 +299,11 @@
             });
             html += `</ul>`;
           }
-          listDiv.innerHTML = html || "등록된 키오스크가 없습니다.";
+          listDiv.innerHTML = html;
+        })
+        .catch(error => {
+          console.error("불러오기 오류:", error);
+          listDiv.innerHTML = "❌ 데이터를 불러오는 중 오류가 발생했습니다.";
         });
     }
   </script>
