@@ -91,7 +91,7 @@
       <li><a onclick="showSection('home')">🏠 홈</a></li>
       <li><a onclick="showSection('dashboard')">📊 대시보드</a></li>
       <li><a onclick="showSection('upload')">📤 콘텐츠 업로드</a></li>
-      <li><a onclick="showSection('status')">🖥 키오스크 상태</a></li>
+      <li><a onclick="showSection('status')">🖥 키오스크 관리</a></li>
       <li><a onclick="toggleSidebar()">❌ 닫기</a></li>
     </ul>
   </nav>
@@ -117,8 +117,11 @@
     </section>
 
     <section id="status">
-      <h2>🖥 키오스크 상태</h2>
-      <p>키오스크 상태 정보가 여기에 표시됩니다.</p>
+      <h2>🖥 키오스크 관리</h2>
+      <input type="text" id="kioskOwner" placeholder="사용자 이름" />
+      <input type="text" id="kioskName" placeholder="키오스크 이름" />
+      <button onclick="registerKiosk()">➕ 키오스크 등록</button>
+      <div id="kioskList"></div>
     </section>
   </main>
 
@@ -148,6 +151,7 @@
       document.querySelectorAll("main > section").forEach(s => s.classList.remove("active"));
       document.getElementById(id).classList.add("active");
       document.getElementById("sidebar").classList.remove("active");
+      if (id === 'status') loadKiosks();
     }
 
     function uploadFile() {
@@ -174,6 +178,49 @@
         })
         .catch(error => {
           document.getElementById("upload-status").innerText = "오류: " + error.message;
+        });
+    }
+
+    function registerKiosk() {
+      const owner = document.getElementById("kioskOwner").value.trim();
+      const name = document.getElementById("kioskName").value.trim();
+      if (!owner || !name) return alert("모든 입력란을 채워주세요.");
+
+      db.collection("kiosks").add({
+        owner,
+        name,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        document.getElementById("kioskOwner").value = "";
+        document.getElementById("kioskName").value = "";
+        loadKiosks();
+      }).catch(error => {
+        alert("등록 실패: " + error.message);
+      });
+    }
+
+    function loadKiosks() {
+      const listDiv = document.getElementById("kioskList");
+      listDiv.innerHTML = "로딩 중...";
+
+      db.collection("kiosks").orderBy("owner").get()
+        .then(snapshot => {
+          const grouped = {};
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (!grouped[data.owner]) grouped[data.owner] = [];
+            grouped[data.owner].push(data.name);
+          });
+
+          let html = "";
+          for (const owner in grouped) {
+            html += `<h3>${owner}</h3><ul>`;
+            grouped[owner].forEach(name => {
+              html += `<li>${name}</li>`;
+            });
+            html += `</ul>`;
+          }
+          listDiv.innerHTML = html || "등록된 키오스크가 없습니다.";
         });
     }
   </script>
