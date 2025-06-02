@@ -2,49 +2,134 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>콘텐츠 관리 사이트</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>콘텐츠 관리 대시보드</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+    header {
+      position: relative;
+    }
+    .top-image {
+      width: 100%;
+      height: auto;
+    }
+    .hamburger {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 30px;
+      cursor: pointer;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 10px;
+      border-radius: 5px;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 220px;
+      height: 100%;
+      background-color: #333;
+      color: white;
+      transition: left 0.3s ease;
+      padding-top: 80px;
+      z-index: 1000;
+    }
+    #sidebar.active {
+      left: 0;
+    }
+    #sidebar ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    #sidebar ul li {
+      padding: 15px;
+      border-bottom: 1px solid #555;
+    }
+    #sidebar ul li a {
+      color: white;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    main {
+      margin-left: 20px;
+      padding: 20px;
+    }
+    section {
+      display: none;
+    }
+    section.active {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-  <h1>콘텐츠 관리 대시보드</h1>
 
+  <header>
+    <img src="https://via.placeholder.com/1200x200?text=콘텐츠+관리+사이트" alt="헤더 이미지" class="top-image" />
+    <div class="hamburger" onclick="toggleSidebar()">☰</div>
+  </header>
 
-  <!-- 📤 콘텐츠 업로드 -->
-  <div id="upload-section" >
-    <h2>콘텐츠 업로드</h2>
-    <input type="file" id="fileInput" />
-    <input type="text" id="title" placeholder="제목" />
-    <input type="text" id="description" placeholder="설명" />
-    <button onclick="uploadFile()">업로드</button>
-    <p id="upload-status"></p>
-  </div>
+  <nav id="sidebar">
+    <ul>
+      <li><a onclick="showSection('dashboard')">📊 대시보드</a></li>
+      <li><a onclick="showSection('upload')">📤 콘텐츠 업로드</a></li>
+      <li><a onclick="showSection('status')">🖥 키오스크 상태</a></li>
+    </ul>
+  </nav>
 
-  <!-- Firebase SDKs -->
+  <main>
+    <section id="dashboard" class="active">
+      <h2>📊 대시보드</h2>
+      <p>대시보드 내용이 여기에 표시됩니다.</p>
+    </section>
+
+    <section id="upload">
+      <h2>📤 콘텐츠 업로드</h2>
+      <input type="file" id="fileInput" />
+      <input type="text" id="title" placeholder="제목" />
+      <input type="text" id="description" placeholder="설명" />
+      <button onclick="uploadFile()">업로드</button>
+      <p id="upload-status"></p>
+    </section>
+
+    <section id="status">
+      <h2>🖥 키오스크 상태</h2>
+      <p>키오스크 상태 정보가 여기에 표시됩니다.</p>
+    </section>
+  </main>
+
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
 
   <script>
-    // 🔧 Firebase 설정
     const firebaseConfig = {
       apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
       authDomain: "capstone-cms-ee242.firebaseapp.com",
       projectId: "capstone-cms-ee242",
-      storageBucket: "capstone-cms-ee242.firebasestorage.app",
+      storageBucket: "capstone-cms-ee242.appspot.com",
       messagingSenderId: "854989357781",
-      appId: "1:854989357781:web:f204fe38859cfc57e1585c",
-      measurementId: "G-7RZWYF7Z6R"
+      appId: "1:854989357781:web:f204fe38859cfc57e1585c"
     };
-
     firebase.initializeApp(firebaseConfig);
-
-    const auth = firebase.auth();
     const storage = firebase.storage();
     const db = firebase.firestore();
 
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
 
+    function showSection(id) {
+      document.querySelectorAll("main > section").forEach(s => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
 
-    // 📤 파일 업로드 + 메타데이터 저장
     function uploadFile() {
       const file = document.getElementById("fileInput").files[0];
       const title = document.getElementById("title").value;
