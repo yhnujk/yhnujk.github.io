@@ -311,6 +311,47 @@
           listDiv.innerHTML = "❌ 데이터를 불러오는 중 오류가 발생했습니다.";
         });
     }
+    
+    function uploadFile() {
+    const file = document.getElementById("fileInput").files[0];
+    const title = document.getElementById("title").value.trim();
+    const description = document.getElementById("description").value.trim();
+
+    if (!file || !title || !description) {
+      alert("모든 항목을 입력해주세요.");
+      return;
+    }
+
+    const storageRef = firebase.storage().ref("contents/" + file.name);
+    const uploadTask = storageRef.put(file);
+
+    uploadTask.on("state_changed",
+      (snapshot) => {
+        // 추후 업로드 진행률 표시 가능
+      },
+      (error) => {
+        document.getElementById("upload-status").innerText = "❌ 업로드 실패: " + error.message;
+      },
+      () => {
+        uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+          firebase.firestore().collection("contents").add({
+            title,
+            description,
+            fileName: file.name,
+            fileUrl: downloadURL,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(() => {
+            document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
+            document.getElementById("fileInput").value = "";
+            document.getElementById("title").value = "";
+            document.getElementById("description").value = "";
+          }).catch((err) => {
+            document.getElementById("upload-status").innerText = "❌ Firestore 저장 실패: " + err.message;
+          });
+        });
+      }
+    );
+  }
   </script>
 </body>
 </html>
