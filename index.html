@@ -154,6 +154,7 @@
     </section>
 
     <section id="dashboard">
+      <div id="contentGallery" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;"></div>
       <h2>📊 대시보드</h2>
       <p>대시보드 내용이 여기에 표시됩니다.</p>
     </section>
@@ -199,7 +200,7 @@
       apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
       authDomain: "capstone-cms-ee242.firebaseapp.com",
       projectId: "capstone-cms-ee242",
-      storageBucket: "capstone-cms-ee242.firebasestorage.app",
+      storageBucket: "capstone-cms-ee242.appspot.com",
       messagingSenderId: "854989357781",
       appId: "1:854989357781:web:f204fe38859cfc57e1585c"
     };
@@ -216,6 +217,7 @@
       document.getElementById(id).classList.add("active");
       document.getElementById("sidebar").classList.remove("active");
       if (id === 'status') loadKiosks();
+      if (id === 'dashboard') loadContents();
     }
 
     function openModal() {
@@ -274,6 +276,45 @@
         alert("등록 실패: " + error.message);
       });
     }
+
+    
+    function loadContents() {
+      const gallery = document.getElementById("contentGallery");
+      gallery.innerHTML = "🔄 콘텐츠 불러오는 중...";
+
+      db.collection("contents").orderBy("createdAt", "desc").get()
+        .then(snapshot => {
+          if (snapshot.empty) {
+            gallery.innerHTML = "표시할 콘텐츠가 없습니다.";
+            return;
+          }
+
+          gallery.innerHTML = "";
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const card = document.createElement("div");
+            card.style.border = "1px solid #ccc";
+            card.style.borderRadius = "10px";
+            card.style.padding = "10px";
+            card.style.width = "200px";
+            card.style.boxShadow = "2px 2px 10px rgba(0,0,0,0.1)";
+            card.style.backgroundColor = "white";
+
+            card.innerHTML = `
+              <img src="${data.fileUrl}" alt="${data.title}" style="width:100%; border-radius: 8px;" />
+              <h4>${data.title}</h4>
+              <p>${data.description}</p>
+            `;
+
+            gallery.appendChild(card);
+          });
+        })
+        .catch(error => {
+          console.error("콘텐츠 불러오기 실패:", error);
+          gallery.innerHTML = "❌ 콘텐츠를 불러오는 중 오류가 발생했습니다.";
+        });
+    }
+
 
     function loadKiosks() {
       const listDiv = document.getElementById("kioskList");
