@@ -133,7 +133,7 @@
 <body>
 
   <header>
-    <img src="https://via.placeholder.com/1200x200?text=콘텐츠+관리+사이트" alt="헤더 이미지" class="top-image" />
+    <img src="세명대학교 로고.jpg" alt="헤더 이미지" class="top-image" />
     <div class="hamburger" onclick="toggleSidebar()">☰</div>
   </header>
 
@@ -141,32 +141,39 @@
     <ul>
       <li><a onclick="showSection('home')">🏠 홈</a></li>
       <li><a onclick="showSection('dashboard')">📊 대시보드</a></li>
-      <li><a onclick="showSection('upload')">📤 콘텐츠 업로드</a></li>
-      <li><a onclick="showSection('status')">🖥 키오스크 관리</a></li>
+            <li><a onclick="showSection('status')">🖥 키오스크 관리</a></li>
       <li><a onclick="toggleSidebar()">❌ 닫기</a></li>
     </ul>
   </nav>
 
   <main>
+
+<section id="dashboard" class="active">
+  <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+    <h2 style="margin: 0;">📊 콘텐츠 관리</h2>
+    <button onclick="toggleUploadForm()">📤 콘텐츠 업로드</button>
+  </div>
+  <p>콘텐츠를 업로드하고, 등록된 사진을 아래에서 확인할 수 있습니다.</p>
+
+  <div id="uploadForm" style="margin-top: 20px; display: none;">
+    <input type="file" id="fileInput" />
+    <input type="text" id="title" placeholder="제목" />
+    <input type="text" id="description" placeholder="설명" />
+    <button onclick="uploadFile()">업로드</button>
+    <p id="upload-status"></p>
+  </div>
+
+  <div id="contentGallery" style="margin-top: 30px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;"></div>
+</section>
+
     <section id="home" class="active">
       <h2>🏠 홈페이지</h2>
       <p>이곳은 콘텐츠 관리 웹사이트의 표지 화면입니다.</p>
     </section>
 
-    <section id="dashboard">
-      <div id="contentGallery" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;"></div>
-      <h2>📊 대시보드</h2>
-      <p>대시보드 내용이 여기에 표시됩니다.</p>
-    </section>
+    
 
-    <section id="upload">
-      <h2>📤 콘텐츠 업로드</h2>
-      <input type="file" id="fileInput" />
-      <input type="text" id="title" placeholder="제목" />
-      <input type="text" id="description" placeholder="설명" />
-      <button onclick="uploadFile()">업로드</button>
-      <p id="upload-status"></p>
-    </section>
+    
 
     <section id="status">
       <h2>🖥 키오스크 관리</h2>
@@ -200,13 +207,22 @@
       apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
       authDomain: "capstone-cms-ee242.firebaseapp.com",
       projectId: "capstone-cms-ee242",
-      storageBucket: "capstone-cms-ee242.firebasestorage.app",
+      storageBucket: "capstone-cms-ee242.appspot.com",
       messagingSenderId: "854989357781",
       appId: "1:854989357781:web:f204fe38859cfc57e1585c"
     };
     firebase.initializeApp(firebaseConfig);
     const storage = firebase.storage();
     const db = firebase.firestore();
+
+    
+    function toggleUploadForm() {
+      const form = document.getElementById("uploadForm");
+      if (form) {
+        form.style.display = form.style.display === "none" ? "block" : "none";
+      }
+    }
+    
 
     function toggleSidebar() {
       document.getElementById("sidebar").classList.toggle("active");
