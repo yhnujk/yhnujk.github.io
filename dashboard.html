@@ -1,46 +1,53 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>사람 냄새 나는 콘텐츠 대시보드</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMS관리 창</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 50;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
-  <div class="flex h-screen">
+<body class="h-screen bg-gray-100 text-gray-800">
+  <div class="flex h-full">
     <!-- 사이드바 -->
-    <aside class="w-64 bg-white border-r p-6 flex flex-col justify-between shadow-md">
-      <div class="space-y-6">
-        <img src="로고.jpg" alt="로고" class="w-20 h-20 object-contain mx-auto rounded-full shadow" />
-        <button onclick="logout()" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">로그아웃</button>
-        <button onclick="toggleUploadForm()" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">콘텐츠 등록</button>
-        <button class="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">스케줄 관리</button>
-      </div>
-      <div id="kioskStatus" class="text-center text-sm text-gray-500 mt-4"></div>
+    <aside class="w-64 bg-white shadow-lg flex flex-col items-center py-6 px-4 gap-4">
+      <img src="로고.jpg" alt="로고" class="w-24 h-24 object-contain rounded-full" />
+      <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full">로그아웃</button>
+      <button onclick="toggleUploadForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">콘텐츠 등록</button>
+      <button onclick="alert('스케줄 관리 페이지 준비 중')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
+      <div id="kioskStatus" class="text-sm text-gray-600 pt-4"></div>
     </aside>
 
-    <!-- 메인 콘텐츠 -->
+    <!-- 메인 -->
     <main class="flex-1 p-6 overflow-y-auto">
-      <h1 class="text-3xl font-bold mb-6">콘텐츠 대시보드</h1>
+      <h1 class="text-2xl font-bold mb-4">CMS관리 창</h1>
 
-      <div id="uploadForm" class="hidden bg-white p-6 rounded shadow mb-6 max-w-xl">
+      <!-- 업로드 폼 -->
+      <div id="uploadForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
         <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
         <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full mb-2" />
         <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full mb-2" />
         <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
-        <p id="upload-status" class="text-sm mt-2 text-gray-600"></p>
+        <p id="upload-status" class="text-sm mt-2"></p>
       </div>
 
-      <div id="contentGallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <!-- 콘텐츠 갤러리 -->
+      <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
     </main>
   </div>
 
   <!-- 이미지 모달 -->
-  <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
-    <div class="relative max-w-3xl w-full p-4">
-      <img id="modalImage" src="" alt="확대 이미지" class="rounded shadow-lg max-h-[80vh] mx-auto" />
-      <button onclick="closeModal()" class="absolute top-2 right-2 bg-white text-black px-2 py-1 rounded shadow hover:bg-gray-100">닫기 ✖</button>
-    </div>
+  <div id="modal" class="hidden modal" onclick="closeModal()">
+    <img id="modalImage" class="max-w-4xl max-h-[80vh] rounded shadow-lg" />
   </div>
 
   <!-- Firebase SDK -->
@@ -53,23 +60,31 @@
       apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
       authDomain: "capstone-cms-ee242.firebaseapp.com",
       projectId: "capstone-cms-ee242",
-      storageBucket: "capstone-cms-ee242.firebasestorage.app",
+      storageBucket: "capstone-cms-ee242.appspot.com",
       messagingSenderId: "854989357781",
       appId: "1:854989357781:web:f204fe38859cfc57e1585c"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const storage = firebase.storage();
-    const auth = firebase.auth();
 
-    function toggleUploadForm() {
-      document.getElementById("uploadForm").classList.toggle("hidden");
-    }
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "index.html";
+      } else {
+        loadContents(user);
+        loadKiosks();
+      }
+    });
 
     function logout() {
       firebase.auth().signOut().then(() => {
-        location.href = "index.html";
+        window.location.href = "index.html";
       });
+    }
+
+    function toggleUploadForm() {
+      document.getElementById("uploadForm").classList.toggle("hidden");
     }
 
     function uploadFile() {
@@ -98,27 +113,15 @@
             document.getElementById("fileInput").value = "";
             document.getElementById("title").value = "";
             document.getElementById("description").value = "";
-            loadContents();
+            loadContents(user);
           });
         });
       });
     }
 
-    function openModal(imageUrl) {
-      document.getElementById("modalImage").src = imageUrl;
-      document.getElementById("imageModal").classList.remove("hidden");
-    }
-
-    function closeModal() {
-      document.getElementById("imageModal").classList.add("hidden");
-    }
-
-    function loadContents() {
-      const user = firebase.auth().currentUser;
-      if (!user) return;
-
+    function loadContents(user) {
       const gallery = document.getElementById("contentGallery");
-      gallery.innerHTML = "불러오는 중...";
+      gallery.innerHTML = "<p class='text-gray-400'>불러오는 중...</p>";
 
       db.collection("contents")
         .where("userId", "==", user.uid)
@@ -126,20 +129,24 @@
         .get()
         .then(snapshot => {
           gallery.innerHTML = "";
+          if (snapshot.empty) {
+            gallery.innerHTML = "<p class='text-gray-400'>등록된 콘텐츠가 없습니다.</p>";
+            return;
+          }
           snapshot.forEach(doc => {
             const data = doc.data();
             const card = document.createElement("div");
-            card.className = "bg-white p-4 rounded shadow hover:shadow-md transition";
+            card.className = "bg-white rounded shadow p-3";
 
             const img = document.createElement("img");
             img.src = data.fileUrl;
             img.alt = data.title;
-            img.className = "rounded mb-3 w-full h-40 object-cover cursor-pointer";
-            img.addEventListener("click", () => openModal(data.fileUrl));
+            img.className = "w-full h-40 object-cover rounded cursor-pointer";
+            img.onclick = () => openModal(data.fileUrl);
             card.appendChild(img);
 
             const title = document.createElement("h4");
-            title.className = "font-bold";
+            title.className = "font-bold mt-2";
             title.textContent = data.title;
             card.appendChild(title);
 
@@ -148,44 +155,46 @@
             desc.textContent = data.description;
             card.appendChild(desc);
 
-            const deleteBtn = document.createElement("button");
-            deleteBtn.className = "mt-2 text-red-500 hover:text-red-700 text-sm";
-            deleteBtn.textContent = "삭제";
-            deleteBtn.addEventListener("click", () => deleteContent(doc.id, data.fileName));
-            card.appendChild(deleteBtn);
+            const delBtn = document.createElement("button");
+            delBtn.className = "mt-2 text-red-500 hover:text-red-700 text-sm";
+            delBtn.textContent = "삭제";
+            delBtn.onclick = () => deleteContent(doc.id, data.fileName, user);
+            card.appendChild(delBtn);
 
             gallery.appendChild(card);
           });
         });
-
-      const statusBox = document.getElementById("kioskStatus");
-      db.collection("kiosks").orderBy("owner").get()
-        .then(snapshot => {
-          let total = 0, online = 0;
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            total++;
-            if (data.status === "online") online++;
-          });
-          statusBox.innerText = `총 ${total}개 중 🟢 ${online}개 online`;
-        });
     }
 
-    function deleteContent(docId, fileName) {
+    function deleteContent(docId, fileName, user) {
       if (!confirm("정말 삭제하시겠습니까?")) return;
       db.collection("contents").doc(docId).delete()
         .then(() => storage.ref("contents/" + fileName).delete())
-        .then(() => loadContents())
+        .then(() => loadContents(user))
         .catch(err => alert("삭제 실패: " + err.message));
     }
 
-    firebase.auth().onAuthStateChanged(user => {
-      if (!user) {
-        location.href = "index.html";
-      } else {
-        loadContents();
-      }
-    });
+    function openModal(url) {
+      document.getElementById("modalImage").src = url;
+      document.getElementById("modal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("modal").classList.add("hidden");
+    }
+
+    function loadKiosks() {
+      const statusBox = document.getElementById("kioskStatus");
+      db.collection("kiosks").get().then(snapshot => {
+        let total = 0, online = 0;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          total++;
+          if (data.status === "online") online++;
+        });
+        statusBox.innerText = `총 ${total}개 중 ${online}개 online`;
+      });
+    }
   </script>
 </body>
 </html>
