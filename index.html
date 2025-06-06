@@ -8,14 +8,11 @@
   </head>
   <body class="h-screen bg-gray-100 text-gray-800">
     <div class="flex h-full">
-      <!-- Leftmost Sidebar (메뉴) -->
       <aside class="w-52 bg-white shadow-lg flex flex-col items-center py-6 gap-6">
         <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="홈"></button>
         <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="스케줄"></button>
         <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="배치"></button>
       </aside>
-
-      <!-- Sidebar with 콘텐츠 등록 + 콘텐츠 목록 -->
       <aside class="w-64 bg-white border-r shadow-md flex flex-col">
         <div class="p-4 border-b space-y-2">
           <button onclick="toggleUploadForm()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">콘텐츠 등록</button>
@@ -24,14 +21,9 @@
         </div>
         <div class="p-4 flex-1 overflow-y-auto" id="contentList"></div>
       </aside>
-
-      <!-- Main and Right Panel Wrapper -->
       <div class="flex flex-1">
-        <!-- Main content -->
         <main class="flex-1 p-6 overflow-y-auto">
           <h1 class="text-2xl font-bold mb-4">Main 창</h1>
-
-          <!-- 업로드 폼 -->
           <div id="uploadForm" class="hidden bg-white p-4 rounded shadow mb-6">
             <input type="file" id="fileInput" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
             <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
@@ -39,12 +31,8 @@
             <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
             <p id="upload-status" class="text-sm mt-2"></p>
           </div>
-
-          <!-- 콘텐츠 갤러리 -->
           <div id="contentGallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </main>
-
-        <!-- Right Sidebar -->
         <aside class="w-64 bg-white border-l shadow-md flex flex-col">
           <div class="p-4 border-b font-bold text-lg">키오스크</div>
           <div id="kioskList" class="flex-1 overflow-y-auto p-4 text-sm text-gray-700"></div>
@@ -52,11 +40,9 @@
       </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
-
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
@@ -71,19 +57,14 @@
       const storage = firebase.storage();
 
       function toggleUploadForm() {
-        const form = document.getElementById("uploadForm");
-        form.classList.toggle("hidden");
+        document.getElementById("uploadForm").classList.toggle("hidden");
       }
 
       function uploadFile() {
         const file = document.getElementById("fileInput").files[0];
         const title = document.getElementById("title").value;
         const description = document.getElementById("description").value;
-
-        if (!file || !title || !description) {
-          alert("모든 항목을 입력해주세요.");
-          return;
-        }
+        if (!file || !title || !description) return alert("모든 항목을 입력해주세요.");
 
         const storageRef = storage.ref("contents/" + file.name);
         const uploadTask = storageRef.put(file);
@@ -164,7 +145,6 @@
               statusBox.innerText = "총 0개";
               return;
             }
-
             let html = "";
             let total = 0, online = 0;
             snapshot.forEach(doc => {
@@ -184,7 +164,10 @@
 
         db.collection("contents").doc(docId).delete()
           .then(() => {
-            return storage.ref("contents/" + fileName).delete();
+            return storage.ref("contents/" + fileName).delete()
+              .catch((error) => {
+                console.warn("Storage에 파일 없음, Firestore 문서만 삭제됨:", error.message);
+              });
           })
           .then(() => {
             loadContents();
@@ -198,7 +181,6 @@
         const name = prompt("키오스크 이름을 입력하세요:");
         const owner = prompt("소유자 이름을 입력하세요:");
         if (!name || !owner) return;
-
         const status = Math.random() < 0.5 ? "online" : "offline";
         db.collection("kiosks").add({ name, owner, status });
         loadContents();
