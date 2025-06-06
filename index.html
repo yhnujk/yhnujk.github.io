@@ -110,31 +110,53 @@
     }
 
     function loadContents() {
-      const gallery = document.getElementById("contentGallery");
-      const list = document.getElementById("contentList");
-      gallery.innerHTML = "";
-      list.innerHTML = "";
+    const gallery = document.getElementById("contentGallery");
+    const list = document.getElementById("contentList");
+    gallery.innerHTML = "";
+    list.innerHTML = "";
 
-      db.collection("contents").orderBy("createdAt", "desc").get()
-        .then(snapshot => {
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const card = document.createElement("div");
-            card.className = "card bg-white p-4 rounded shadow";
-            card.innerHTML = `
-              <img src="${data.fileUrl}" alt="${data.title}" class="rounded mb-2">
-              <h4 class="font-bold">${data.title}</h4>
-              <p class="text-sm text-gray-600">${data.description}</p>
-              <button class="mt-2 text-red-500 hover:text-red-700" onclick="deleteContent(\"${doc.id}\", \"${data.fileName}\")">삭제</button>
-            `;
-            gallery.appendChild(card);
+    db.collection("contents").orderBy("createdAt", "desc").get()
+      .then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const card = document.createElement("div");
+          card.className = "card bg-white p-4 rounded shadow";
 
-            const preview = document.createElement("div");
-            preview.className = "mb-2 p-2 bg-green-200 rounded cursor-pointer hover:bg-green-300";
-            preview.innerText = data.title;
-            list.appendChild(preview);
-          });
+          // 이미지
+          const img = document.createElement("img");
+          img.src = data.fileUrl;
+          img.alt = data.title;
+          img.className = "rounded mb-2";
+          card.appendChild(img);
+
+          // 제목
+          const title = document.createElement("h4");
+          title.className = "font-bold";
+          title.textContent = data.title;
+          card.appendChild(title);
+
+          // 설명
+          const desc = document.createElement("p");
+          desc.className = "text-sm text-gray-600";
+          desc.textContent = data.description;
+          card.appendChild(desc);
+
+          // 삭제 버튼 (이벤트 직접 바인딩)
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "mt-2 text-red-500 hover:text-red-700";
+          deleteBtn.textContent = "삭제";
+          deleteBtn.addEventListener("click", () => deleteContent(doc.id, data.fileName));
+          card.appendChild(deleteBtn);
+
+          gallery.appendChild(card);
+
+          // 콘텐츠 미리보기 목록
+          const preview = document.createElement("div");
+          preview.className = "mb-2 p-2 bg-green-200 rounded cursor-pointer hover:bg-green-300";
+          preview.textContent = data.title;
+          list.appendChild(preview);
         });
+      });
 
       const kioskList = document.getElementById("kioskList");
       const statusBox = document.getElementById("kioskStatus");
