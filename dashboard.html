@@ -1,43 +1,56 @@
+<!-- 사람 냄새 나는 콘텐츠 대시보드 전체 HTML -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>콘텐츠 대시보드</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-200 text-gray-800">
+<body class="bg-gray-50 text-gray-800">
   <div class="flex min-h-screen">
-    <!-- 좌측 사이드바 -->
-    <aside class="w-64 bg-white shadow-md flex flex-col items-center py-6 px-4">
-      <img src="로고.jpg" alt="로고" class="w-20 h-20 rounded-full shadow mb-6" />
-      <button onclick="logout()" class="w-full mb-4 bg-red-500 text-white py-2 rounded hover:bg-red-600">로그아웃</button>
-      <nav class="w-full space-y-2">
-        <button onclick="toggleUploadForm()" class="w-full text-left px-4 py-2 rounded hover:bg-gray-100 font-medium">📤 콘텐츠 등록</button>
-        <button onclick="alert('준비 중입니다.')" class="w-full text-left px-4 py-2 rounded hover:bg-gray-100 font-medium">📆 스케줄 관리</button>
+    <!-- 사이드바 -->
+    <aside class="w-64 bg-white shadow-md flex flex-col items-center py-6">
+      <img src="로고.jpg" alt="로고" class="w-20 h-20 object-contain rounded-full shadow mb-4" />
+      <button onclick="logout()" class="mb-6 text-sm text-red-500 hover:underline">로그아웃</button>
+      <nav class="w-full space-y-3 px-4">
+        <button onclick="toggleUploadForm()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">콘텐츠 등록</button>
+        <button onclick="addKiosk()" class="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">키오스크 추가</button>
+        <div id="kioskStatus" class="text-sm text-gray-500 mt-2 text-center"></div>
       </nav>
     </aside>
 
     <!-- 메인 콘텐츠 -->
-    <main class="flex-1 p-8 overflow-y-auto">
-      <h1 class="text-3xl font-bold mb-6">📂 콘텐츠 관리</h1>
+    <main class="flex-1 p-6 overflow-y-auto">
+      <h1 class="text-2xl font-bold mb-6">📂 콘텐츠 대시보드</h1>
 
-      <div id="uploadForm" class="hidden bg-white p-6 rounded-xl shadow mb-8 space-y-4 max-w-xl">
-        <input type="file" id="fileInput" class="w-full border p-2 rounded" />
-        <input type="text" id="title" placeholder="제목" class="w-full border p-2 rounded" />
-        <input type="text" id="description" placeholder="설명" class="w-full border p-2 rounded" />
-        <button onclick="uploadFile()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">업로드</button>
-        <p id="upload-status" class="text-sm text-gray-600"></p>
+      <!-- 업로드 폼 -->
+      <div id="uploadForm" class="hidden bg-white p-4 rounded-lg shadow mb-6 max-w-xl">
+        <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
+        <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full mb-2" />
+        <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full mb-2" />
+        <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
+        <p id="upload-status" class="text-sm text-green-600 mt-2"></p>
       </div>
 
-      <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+      <!-- 콘텐츠 갤러리 -->
+      <div id="contentGallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </main>
   </div>
 
+  <!-- 이미지 확대 모달 -->
+  <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+    <div class="relative max-w-3xl w-full p-4">
+      <img id="modalImage" src="" alt="확대 이미지" class="rounded shadow-lg max-h-[80vh] mx-auto" />
+      <button onclick="closeModal()" class="absolute top-2 right-2 bg-white text-black px-2 py-1 rounded shadow hover:bg-gray-100">닫기 ✖</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -49,29 +62,30 @@
       appId: "1:854989357781:web:f204fe38859cfc57e1585c"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const db = firebase.firestore();
     const storage = firebase.storage();
 
-    let loggingOut = false;
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) location.href = "index.html";
+    });
 
     function logout() {
-      loggingOut = true;
-      auth.signOut().then(() => {
+      firebase.auth().signOut().then(() => {
         location.href = "index.html";
       });
     }
 
-    auth.onAuthStateChanged(user => {
-      if (!user && !loggingOut) {
-        location.href = "index.html";
-      } else if (user) {
-        loadContents();
-      }
-    });
-
     function toggleUploadForm() {
       document.getElementById("uploadForm").classList.toggle("hidden");
+    }
+
+    function openModal(imageUrl) {
+      document.getElementById("modalImage").src = imageUrl;
+      document.getElementById("imageModal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("imageModal").classList.add("hidden");
     }
 
     function uploadFile() {
@@ -106,50 +120,72 @@
 
     function loadContents() {
       const gallery = document.getElementById("contentGallery");
-      gallery.innerHTML = "불러오는 중...";
+      gallery.innerHTML = "로딩 중...";
 
-      db.collection("contents").orderBy("createdAt", "desc").get()
-        .then(snapshot => {
-          gallery.innerHTML = "";
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const card = document.createElement("div");
-            card.className = "bg-white p-4 rounded-xl shadow hover:shadow-lg transition";
+      db.collection("contents").orderBy("createdAt", "desc").get().then(snapshot => {
+        gallery.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
 
-            const img = document.createElement("img");
-            img.src = data.fileUrl;
-            img.alt = data.title;
-            img.className = "rounded mb-3 w-full h-40 object-cover";
-            card.appendChild(img);
+          const card = document.createElement("div");
+          card.className = "bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition";
 
-            const title = document.createElement("h4");
-            title.className = "font-bold text-lg";
-            title.textContent = data.title;
-            card.appendChild(title);
+          const img = document.createElement("img");
+          img.src = data.fileUrl;
+          img.alt = data.title;
+          img.className = "rounded mb-3 w-full h-40 object-cover cursor-pointer";
+          img.addEventListener("click", () => openModal(data.fileUrl));
+          card.appendChild(img);
 
-            const desc = document.createElement("p");
-            desc.className = "text-sm text-gray-600";
-            desc.textContent = data.description;
-            card.appendChild(desc);
+          const title = document.createElement("h4");
+          title.className = "font-bold text-lg";
+          title.textContent = data.title;
+          card.appendChild(title);
 
-            const deleteBtn = document.createElement("button");
-            deleteBtn.className = "mt-3 text-sm text-red-500 hover:text-red-700";
-            deleteBtn.textContent = "삭제";
-            deleteBtn.addEventListener("click", () => deleteContent(doc.id, data.fileName));
-            card.appendChild(deleteBtn);
+          const desc = document.createElement("p");
+          desc.className = "text-sm text-gray-600";
+          desc.textContent = data.description;
+          card.appendChild(desc);
 
-            gallery.appendChild(card);
-          });
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "mt-2 text-red-500 hover:text-red-700 text-sm";
+          deleteBtn.textContent = "삭제";
+          deleteBtn.addEventListener("click", () => deleteContent(doc.id, data.fileName));
+          card.appendChild(deleteBtn);
+
+          gallery.appendChild(card);
         });
+      });
+
+      const kioskList = document.getElementById("kioskStatus");
+      db.collection("kiosks").get().then(snapshot => {
+        let total = 0, online = 0;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          total++;
+          if (data.status === "online") online++;
+        });
+        kioskList.innerText = `총 ${total}개 중 ${online}개 online`;
+      });
     }
 
     function deleteContent(docId, fileName) {
       if (!confirm("정말 삭제하시겠습니까?")) return;
       db.collection("contents").doc(docId).delete()
-        .then(() => storage.ref("contents/" + fileName).delete().catch(err => console.warn("Storage 삭제 오류:", err)))
+        .then(() => storage.ref("contents/" + fileName).delete())
         .then(() => loadContents())
         .catch(err => alert("삭제 실패: " + err.message));
     }
+
+    function addKiosk() {
+      const name = prompt("키오스크 이름을 입력하세요:");
+      const owner = prompt("소유자 이름을 입력하세요:");
+      if (!name || !owner) return;
+      const status = Math.random() < 0.5 ? "online" : "offline";
+      db.collection("kiosks").add({ name, owner, status }).then(loadContents);
+    }
+
+    window.onload = loadContents;
   </script>
 </body>
 </html>
