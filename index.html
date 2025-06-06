@@ -1,211 +1,214 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>통합 콘텐츠 대시보드</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="h-screen bg-gray-100 text-gray-800">
-    <div class="flex h-full">
-      <aside class="w-52 bg-white shadow-lg flex flex-col items-center py-6 gap-6">
-        <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="홈"></button>
-        <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="스케줄"></button>
-        <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="배치"></button>
-      </aside>
-      <aside class="w-64 bg-white border-r shadow-md flex flex-col">
-        <div class="p-4 border-b space-y-2">
-          <button onclick="toggleUploadForm()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">콘텐츠 등록</button>
-          <button onclick="addKiosk()" class="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">키오스크 추가</button>
-          <div id="kioskStatus" class="text-sm text-gray-600"></div>
-        </div>
-        <div class="p-4 flex-1 overflow-y-auto" id="contentList"></div>
-      </aside>
-      <div class="flex flex-1">
-        <main class="flex-1 p-6 overflow-y-auto">
-          <h1 class="text-2xl font-bold mb-4">Main 창</h1>
-          <div id="uploadForm" class="hidden bg-white p-4 rounded shadow mb-6">
-            <input type="file" id="fileInput" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
-            <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
-            <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
-            <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
-            <p id="upload-status" class="text-sm mt-2"></p>
-          </div>
-          <div id="contentGallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-        </main>
-        <aside class="w-64 bg-white border-l shadow-md flex flex-col">
-          <div class="p-4 border-b font-bold text-lg">키오스크</div>
-          <div id="kioskList" class="flex-1 overflow-y-auto p-4 text-sm text-gray-700"></div>
-        </aside>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>통합 콘텐츠 대시보드</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-screen bg-gray-100 text-gray-800">
+  <div class="flex h-full">
+    <!-- 좌측 메뉴 -->
+    <aside class="w-52 bg-white shadow-lg flex flex-col items-center py-6 gap-6">
+      <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="홈"></button>
+      <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="스케줄"></button>
+      <button class="w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400" title="배치"></button>
+    </aside>
+
+    <!-- 콘텐츠 등록 및 목록 -->
+    <aside class="w-64 bg-white border-r shadow-md flex flex-col">
+      <div class="p-4 border-b space-y-2">
+        <button onclick="toggleUploadForm()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">콘텐츠 등록</button>
+        <button onclick="addKiosk()" class="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">키오스크 추가</button>
+        <div id="kioskStatus" class="text-sm text-gray-600"></div>
       </div>
+      <div class="p-4 flex-1 overflow-y-auto" id="contentList"></div>
+    </aside>
+
+    <div class="flex flex-1">
+      <!-- 메인 -->
+      <main class="flex-1 p-6 overflow-y-auto">
+        <h1 class="text-2xl font-bold mb-4">Main 창</h1>
+        <div id="uploadForm" class="hidden bg-white p-4 rounded shadow mb-6">
+          <input type="file" id="fileInput" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
+          <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
+          <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
+          <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
+          <p id="upload-status" class="text-sm mt-2"></p>
+        </div>
+        <div id="contentGallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </main>
+
+      <!-- 우측 키오스크 목록 -->
+      <aside class="w-64 bg-white border-l shadow-md flex flex-col">
+        <div class="p-4 border-b font-bold text-lg">키오스크</div>
+        <div id="kioskList" class="flex-1 overflow-y-auto p-4 text-sm text-gray-700"></div>
+      </aside>
     </div>
+  </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
-        authDomain: "capstone-cms-ee242.firebaseapp.com",
-        projectId: "capstone-cms-ee242",
-        storageBucket: "gs://capstone-cms-ee242.firebasestorage.app",
-        messagingSenderId: "854989357781",
-        appId: "1:854989357781:web:f204fe38859cfc57e1585c"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore();
-      const storage = firebase.storage();
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
+      authDomain: "capstone-cms-ee242.firebaseapp.com",
+      projectId: "capstone-cms-ee242",
+      storageBucket: "gs://capstone-cms-ee242.firebasestorage.app",
+      messagingSenderId: "854989357781",
+      appId: "1:854989357781:web:f204fe38859cfc57e1585c"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const storage = firebase.storage();
 
-      function toggleUploadForm() {
-        document.getElementById("uploadForm").classList.toggle("hidden");
-      }
+    function toggleUploadForm() {
+      document.getElementById("uploadForm").classList.toggle("hidden");
+    }
 
-      function uploadFile() {
-        const file = document.getElementById("fileInput").files[0];
-        const title = document.getElementById("title").value;
-        const description = document.getElementById("description").value;
-        if (!file || !title || !description) return alert("모든 항목을 입력해주세요.");
+    function uploadFile() {
+      const file = document.getElementById("fileInput").files[0];
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+      if (!file || !title || !description) return alert("모든 항목을 입력해주세요.");
 
-        const storageRef = storage.ref("contents/" + file.name);
-        const uploadTask = storageRef.put(file);
+      const storageRef = storage.ref("contents/" + file.name);
+      const uploadTask = storageRef.put(file);
 
-        uploadTask.on("state_changed", null, (error) => {
-          document.getElementById("upload-status").innerText = "업로드 실패: " + error.message;
-        }, () => {
-          uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-            db.collection("contents").add({
-              title,
-              description,
-              fileName: file.name,
-              fileUrl: downloadURL,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-              document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
-              document.getElementById("fileInput").value = "";
-              document.getElementById("title").value = "";
-              document.getElementById("description").value = "";
-              loadContents();
-            });
+      uploadTask.on("state_changed", null, (error) => {
+        document.getElementById("upload-status").innerText = "업로드 실패: " + error.message;
+      }, () => {
+        uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+          db.collection("contents").add({
+            title,
+            description,
+            fileName: file.name,
+            fileUrl: downloadURL,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(() => {
+            document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
+            document.getElementById("fileInput").value = "";
+            document.getElementById("title").value = "";
+            document.getElementById("description").value = "";
+            loadContents();
           });
         });
-      }
+      });
+    }
 
-      function loadContents() {
-        const gallery = document.getElementById("contentGallery");
-        const list = document.getElementById("contentList");
-        gallery.innerHTML = "";
-        list.innerHTML = "";
+    function loadContents() {
+      const gallery = document.getElementById("contentGallery");
+      const list = document.getElementById("contentList");
+      gallery.innerHTML = "";
+      list.innerHTML = "";
 
-        db.collection("contents").orderBy("createdAt", "desc").get()
-          .then(snapshot => {
-            snapshot.forEach(doc => {
-              const data = doc.data();
-              const card = document.createElement("div");
-              card.className = "card bg-white p-4 rounded shadow";
+      db.collection("contents").orderBy("createdAt", "desc").get()
+        .then(snapshot => {
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const card = document.createElement("div");
+            card.className = "card bg-white p-4 rounded shadow";
 
-              const img = document.createElement("img");
-              img.src = data.fileUrl;
-              img.alt = data.title;
-              img.className = "rounded mb-2";
-              card.appendChild(img);
+            const img = document.createElement("img");
+            img.src = data.fileUrl;
+            img.alt = data.title;
+            img.className = "rounded mb-2";
+            card.appendChild(img);
 
-              const title = document.createElement("h4");
-              title.className = "font-bold";
-              title.textContent = data.title;
-              card.appendChild(title);
+            const title = document.createElement("h4");
+            title.className = "font-bold";
+            title.textContent = data.title;
+            card.appendChild(title);
 
-              const desc = document.createElement("p");
-              desc.className = "text-sm text-gray-600";
-              desc.textContent = data.description;
-              card.appendChild(desc);
+            const desc = document.createElement("p");
+            desc.className = "text-sm text-gray-600";
+            desc.textContent = data.description;
+            card.appendChild(desc);
 
-              const deleteBtn = document.createElement("button");
-              deleteBtn.className = "mt-2 text-red-500 hover:text-red-700";
-              deleteBtn.textContent = "삭제";
-              deleteBtn.addEventListener("click", () => deleteContent(doc.id, data.fileName));
-              card.appendChild(deleteBtn);
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "mt-2 text-red-500 hover:text-red-700";
+            deleteBtn.textContent = "삭제";
+            deleteBtn.addEventListener("click", () => deleteContent(doc.id, data.fileName));
+            card.appendChild(deleteBtn);
 
-              gallery.appendChild(card);
+            gallery.appendChild(card);
 
-              const preview = document.createElement("div");
-              preview.className = "mb-2 p-2 bg-green-200 rounded cursor-pointer hover:bg-green-300";
-              preview.textContent = data.title;
-              list.appendChild(preview);
-            });
+            const preview = document.createElement("div");
+            preview.className = "mb-2 p-2 bg-green-200 rounded cursor-pointer hover:bg-green-300";
+            preview.textContent = data.title;
+            list.appendChild(preview);
           });
+        });
 
-        const kioskList = document.getElementById("kioskList");
-        const statusBox = document.getElementById("kioskStatus");
-        kioskList.innerHTML = "로딩 중...";
+      const kioskList = document.getElementById("kioskList");
+      const statusBox = document.getElementById("kioskStatus");
+      kioskList.innerHTML = "로딩 중...";
 
-        db.collection("kiosks").orderBy("owner").get()
-          .then(snapshot => {
-            if (snapshot.empty) {
-              kioskList.innerHTML = "등록된 키오스크가 없습니다.";
-              statusBox.innerText = "총 0개";
-              return;
-            }
-            let html = "";
-            let total = 0, online = 0;
-            snapshot.forEach(doc => {
-              const data = doc.data();
-              total++;
-              if (data.status === "online") online++;
-              const colorClass = data.status === "online" ? "text-green-600" : "text-red-600";
-              html += `<div class="mb-1 flex justify-between items-center">
-                <span class="${colorClass}">${data.name} (${data.owner})</span>
-                <button onclick="deleteKiosk(\"${doc.id}\")" class="text-xs text-red-500 hover:text-red-700 ml-2">삭제</button>
-              </div>`;
-            });
-            kioskList.innerHTML = html;
-            statusBox.innerText = `총 ${total}개 중 ${online}개 online`;
+      db.collection("kiosks").orderBy("owner").get()
+        .then(snapshot => {
+          if (snapshot.empty) {
+            kioskList.innerHTML = "등록된 키오스크가 없습니다.";
+            statusBox.innerText = "총 0개";
+            return;
+          }
+          let total = 0, online = 0;
+          kioskList.innerHTML = "";
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            total++;
+            if (data.status === "online") online++;
+
+            const row = document.createElement("div");
+            row.className = "mb-1 flex justify-between items-center";
+
+            const span = document.createElement("span");
+            span.className = data.status === "online" ? "text-green-600" : "text-red-600";
+            span.textContent = `${data.name} (${data.owner})`;
+
+            const delBtn = document.createElement("button");
+            delBtn.className = "text-xs text-red-500 hover:text-red-700 ml-2";
+            delBtn.textContent = "삭제";
+            delBtn.addEventListener("click", () => deleteKiosk(doc.id));
+
+            row.appendChild(span);
+            row.appendChild(delBtn);
+            kioskList.appendChild(row);
           });
-      }
-
-      function deleteContent(docId, fileName) {
-        if (!confirm("정말 삭제하시겠습니까?")) return;
-
-        db.collection("contents").doc(docId).delete()
-          .then(() => {
-            return storage.ref("contents/" + fileName).delete()
-              .catch((error) => {
-                console.warn("Storage에 파일 없음, Firestore 문서만 삭제됨:", error.message);
-              });
-          })
-          .then(() => {
-            loadContents();
-          })
-          .catch(err => {
-            alert("삭제 실패: " + err.message);
-          });
-      }
-
-    function deleteKiosk(docId) {
-      console.log("삭제 시도:", docId);
-      if (!confirm("이 키오스크를 삭제하시겠습니까?")) return;
-
-      db.collection("kiosks").doc(docId).delete()
-        .then(() => {
-          console.log("삭제 완료");
-          loadContents();
-        })
-        .catch(err => {
-          alert("키오스크 삭제 실패: " + err.message);
-          console.error("삭제 에러:", err);
+          statusBox.innerText = `총 ${total}개 중 ${online}개 online`;
         });
     }
 
+    function deleteContent(docId, fileName) {
+      if (!confirm("정말 삭제하시겠습니까?")) return;
+      db.collection("contents").doc(docId).delete()
+        .then(() => storage.ref("contents/" + fileName).delete()
+          .catch(err => console.warn("Storage에 없음:", err.message)))
+        .then(() => loadContents())
+        .catch(err => alert("삭제 실패: " + err.message));
+    }
 
-      function addKiosk() {
-        const name = prompt("키오스크 이름을 입력하세요:");
-        const owner = prompt("소유자 이름을 입력하세요:");
-        if (!name || !owner) return;
-        const status = Math.random() < 0.5 ? "online" : "offline";
-        db.collection("kiosks").add({ name, owner, status });
-        loadContents();
-      }
+    function deleteKiosk(docId) {
+      if (!confirm("이 키오스크를 삭제하시겠습니까?")) return;
+      db.collection("kiosks").doc(docId).delete()
+        .then(() => loadContents())
+        .catch(err => {
+          console.error("키오스크 삭제 에러:", err);
+          alert("키오스크 삭제 실패: " + err.message);
+        });
+    }
 
-      window.onload = loadContents;
-    </script>
-  </body>
+    function addKiosk() {
+      const name = prompt("키오스크 이름을 입력하세요:");
+      const owner = prompt("소유자 이름을 입력하세요:");
+      if (!name || !owner) return;
+      const status = Math.random() < 0.5 ? "online" : "offline";
+      db.collection("kiosks").add({ name, owner, status });
+      loadContents();
+    }
+
+    window.onload = loadContents;
+  </script>
+</body>
 </html>
