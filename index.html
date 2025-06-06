@@ -110,12 +110,12 @@
     }
 
     function loadContents() {
-    const gallery = document.getElementById("contentGallery");
-    const list = document.getElementById("contentList");
-    gallery.innerHTML = "";
-    list.innerHTML = "";
+      const gallery = document.getElementById("contentGallery");
+      const list = document.getElementById("contentList");
+      gallery.innerHTML = "";
+      list.innerHTML = "";
 
-    db.collection("contents").orderBy("createdAt", "desc").get()
+      db.collection("contents").orderBy("createdAt", "desc").get()
       .then(snapshot => {
         snapshot.forEach(doc => {
           const data = doc.data();
