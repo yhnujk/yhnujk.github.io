@@ -1,39 +1,39 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>콘텐츠 대시보드</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="h-screen bg-gray-100 text-gray-800">
-
-  <div class="flex h-full">
-    <!-- 사이드바 -->
-    <aside class="w-64 bg-white shadow-lg flex flex-col items-center py-6 gap-4">
-      <img src="로고.jpg" alt="로고" class="w-20 h-20 object-contain mb-4" />
-      <button onclick="toggleUploadForm()" class="w-52 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">📤 콘텐츠 등록</button>
-      <button onclick="showSection('schedule')" class="w-52 bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">🗓️ 스케줄 관리</button>
-      <button onclick="logout()" class="w-52 bg-red-500 text-white py-2 rounded hover:bg-red-600 mt-6">🔓 로그아웃</button>
+<body class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-200 text-gray-800">
+  <div class="flex min-h-screen">
+    <!-- 좌측 사이드바 -->
+    <aside class="w-64 bg-white shadow-md flex flex-col items-center py-6 px-4">
+      <img src="로고.jpg" alt="로고" class="w-20 h-20 rounded-full shadow mb-6" />
+      <button onclick="logout()" class="w-full mb-4 bg-red-500 text-white py-2 rounded hover:bg-red-600">로그아웃</button>
+      <nav class="w-full space-y-2">
+        <button onclick="toggleUploadForm()" class="w-full text-left px-4 py-2 rounded hover:bg-gray-100 font-medium">📤 콘텐츠 등록</button>
+        <button onclick="alert('준비 중입니다.')" class="w-full text-left px-4 py-2 rounded hover:bg-gray-100 font-medium">📆 스케줄 관리</button>
+      </nav>
     </aside>
 
-    <!-- 메인 -->
-    <main class="flex-1 p-6 overflow-y-auto">
-      <h1 class="text-2xl font-bold mb-4">Main 창</h1>
+    <!-- 메인 콘텐츠 -->
+    <main class="flex-1 p-8 overflow-y-auto">
+      <h1 class="text-3xl font-bold mb-6">📂 콘텐츠 관리</h1>
 
-      <div id="uploadForm" class="hidden bg-white p-4 rounded shadow mb-6">
-        <input type="file" id="fileInput" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
-        <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
-        <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full max-w-md mx-auto mb-2" />
-        <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
-        <p id="upload-status" class="text-sm mt-2"></p>
+      <div id="uploadForm" class="hidden bg-white p-6 rounded-xl shadow mb-8 space-y-4 max-w-xl">
+        <input type="file" id="fileInput" class="w-full border p-2 rounded" />
+        <input type="text" id="title" placeholder="제목" class="w-full border p-2 rounded" />
+        <input type="text" id="description" placeholder="설명" class="w-full border p-2 rounded" />
+        <button onclick="uploadFile()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">업로드</button>
+        <p id="upload-status" class="text-sm text-gray-600"></p>
       </div>
 
-      <div id="contentGallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
     </main>
   </div>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
@@ -49,26 +49,12 @@
       appId: "1:854989357781:web:f204fe38859cfc57e1585c"
     };
     firebase.initializeApp(firebaseConfig);
-
     const auth = firebase.auth();
     const db = firebase.firestore();
     const storage = firebase.storage();
 
-    let loggingOut = false; // ✅ 로그아웃 여부 추적 변수
+    let loggingOut = false;
 
-    // 인증 상태 확인
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        if (!loggingOut) {
-          alert("로그인이 필요합니다.");
-        }
-        location.href = "index.html";
-      } else {
-        loadContents();
-      }
-    });
-
-    // 로그아웃 함수
     function logout() {
       loggingOut = true;
       auth.signOut().then(() => {
@@ -76,85 +62,68 @@
       });
     }
 
-    // 콘텐츠 등록 폼 토글
+    auth.onAuthStateChanged(user => {
+      if (!user && !loggingOut) {
+        location.href = "index.html";
+      } else if (user) {
+        loadContents();
+      }
+    });
+
     function toggleUploadForm() {
       document.getElementById("uploadForm").classList.toggle("hidden");
     }
 
-    // 콘텐츠 업로드
     function uploadFile() {
       const file = document.getElementById("fileInput").files[0];
-      const title = document.getElementById("title").value.trim();
-      const description = document.getElementById("description").value.trim();
-      const user = auth.currentUser;
-
-      if (!file || !title || !description || !user) {
-        alert("모든 항목을 입력해주세요.");
-        return;
-      }
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+      if (!file || !title || !description) return alert("모든 항목을 입력해주세요.");
 
       const storageRef = storage.ref("contents/" + file.name);
       const uploadTask = storageRef.put(file);
 
-      uploadTask.on("state_changed", null,
-        (error) => {
-          document.getElementById("upload-status").innerText = "❌ 업로드 실패: " + error.message;
-        },
-        () => {
-          uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-            db.collection("contents").add({
-              title,
-              description,
-              fileName: file.name,
-              fileUrl: downloadURL,
-              uid: user.uid,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-              document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
-              document.getElementById("fileInput").value = "";
-              document.getElementById("title").value = "";
-              document.getElementById("description").value = "";
-              loadContents();
-            }).catch((err) => {
-              document.getElementById("upload-status").innerText = "❌ Firestore 저장 실패: " + err.message;
-            });
+      uploadTask.on("state_changed", null, (error) => {
+        document.getElementById("upload-status").innerText = "업로드 실패: " + error.message;
+      }, () => {
+        uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+          db.collection("contents").add({
+            title,
+            description,
+            fileName: file.name,
+            fileUrl: downloadURL,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(() => {
+            document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
+            document.getElementById("fileInput").value = "";
+            document.getElementById("title").value = "";
+            document.getElementById("description").value = "";
+            loadContents();
           });
-        }
-      );
+        });
+      });
     }
 
-    // 콘텐츠 로드
     function loadContents() {
       const gallery = document.getElementById("contentGallery");
-      const user = auth.currentUser;
-      if (!user) return;
+      gallery.innerHTML = "불러오는 중...";
 
-      gallery.innerHTML = "🔄 불러오는 중...";
-
-      db.collection("contents")
-        .where("uid", "==", user.uid)
-        .orderBy("createdAt", "desc")
-        .get()
+      db.collection("contents").orderBy("createdAt", "desc").get()
         .then(snapshot => {
-          if (snapshot.empty) {
-            gallery.innerHTML = "📭 등록된 콘텐츠가 없습니다.";
-            return;
-          }
-
           gallery.innerHTML = "";
           snapshot.forEach(doc => {
             const data = doc.data();
             const card = document.createElement("div");
-            card.className = "bg-white p-4 rounded shadow";
+            card.className = "bg-white p-4 rounded-xl shadow hover:shadow-lg transition";
 
             const img = document.createElement("img");
             img.src = data.fileUrl;
             img.alt = data.title;
-            img.className = "rounded mb-2 w-full max-w-[200px] h-auto mx-auto";
+            img.className = "rounded mb-3 w-full h-40 object-cover";
             card.appendChild(img);
 
             const title = document.createElement("h4");
-            title.className = "font-bold";
+            title.className = "font-bold text-lg";
             title.textContent = data.title;
             card.appendChild(title);
 
@@ -163,34 +132,23 @@
             desc.textContent = data.description;
             card.appendChild(desc);
 
-            const delBtn = document.createElement("button");
-            delBtn.className = "mt-2 text-red-500 hover:text-red-700";
-            delBtn.textContent = "삭제";
-            delBtn.onclick = () => deleteContent(doc.id, data.fileName);
-            card.appendChild(delBtn);
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "mt-3 text-sm text-red-500 hover:text-red-700";
+            deleteBtn.textContent = "삭제";
+            deleteBtn.addEventListener("click", () => deleteContent(doc.id, data.fileName));
+            card.appendChild(deleteBtn);
 
             gallery.appendChild(card);
           });
-        })
-        .catch(err => {
-          console.error("콘텐츠 불러오기 실패:", err);
-          gallery.innerHTML = "❌ 콘텐츠를 불러오는 중 오류가 발생했습니다.";
         });
     }
 
-    // 콘텐츠 삭제
     function deleteContent(docId, fileName) {
       if (!confirm("정말 삭제하시겠습니까?")) return;
-
       db.collection("contents").doc(docId).delete()
-        .then(() => storage.ref("contents/" + fileName).delete())
+        .then(() => storage.ref("contents/" + fileName).delete().catch(err => console.warn("Storage 삭제 오류:", err)))
         .then(() => loadContents())
         .catch(err => alert("삭제 실패: " + err.message));
-    }
-
-    // 스케줄 기능 자리
-    function showSection(id) {
-      alert("스케줄 관리 기능은 아직 구현되지 않았습니다.");
     }
   </script>
 </body>
