@@ -1,97 +1,67 @@
+<!-- 사람 냄새 나는 로그인 페이지 예시 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>로그인 시스템</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="h-screen bg-gray-100 text-gray-800 flex">
+<body class="min-h-screen bg-gradient-to-b from-gray-100 to-gray-300 flex items-center justify-center">
+  <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-sm space-y-6">
+    <div class="text-center">
+      <img src="로고.jpg" alt="로고" class="w-16 h-16 mx-auto mb-2 rounded-full shadow" />
+      <h1 class="text-2xl font-bold text-gray-800">콘텐츠 관리자 로그인</h1>
+    </div>
 
-  <!-- 사이드바 -->
-  <aside class="w-52 bg-white shadow-lg flex flex-col items-center py-10 gap-6">
-    <!-- 로고 이미지 -->
-    <img src="로고.jpg" alt="로고" class="w-20 h-20 object-contain" />
-  
-    <!-- 로그인/회원가입 버튼 -->
-    <button id="goLogin" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">로그인</button>
-    <button id="goSignup" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">회원가입</button>
-  </aside>
-
-
-  <!-- 메인 컨텐츠 -->
-  <main class="flex-1 flex justify-center items-center">
-    <!-- 로그인 창 -->
-    <div id="loginBox" class="w-full max-w-md bg-white p-6 rounded shadow-md space-y-4">
-      <h2 class="text-2xl font-bold">로그인</h2>
+    <div id="loginBox" class="space-y-4">
       <input type="email" id="loginEmail" placeholder="이메일" class="w-full border p-2 rounded" />
       <input type="password" id="loginPassword" placeholder="비밀번호" class="w-full border p-2 rounded" />
-      <button onclick="login()" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">로그인</button>
-      <p id="loginError" class="text-red-500 text-sm"></p>
+      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">로그인</button>
+      <p id="loginError" class="text-red-500 text-sm text-center"></p>
+      <p class="text-center text-sm text-gray-500">처음이신가요? <a href="#" onclick="showSignup()" class="text-blue-500 underline">회원가입</a></p>
     </div>
 
-    <!-- 회원가입 창 -->
-    <div id="signupBox" class="hidden w-full max-w-md bg-white p-6 rounded shadow-md space-y-4">
-      <h2 class="text-2xl font-bold">회원가입</h2>
+    <div id="signupBox" class="hidden space-y-4">
       <input type="email" id="signupEmail" placeholder="이메일" class="w-full border p-2 rounded" />
       <input type="password" id="signupPassword" placeholder="비밀번호" class="w-full border p-2 rounded" />
-      <button onclick="signup()" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">계정 생성</button>
-      <p id="signupError" class="text-red-500 text-sm"></p>
+      <button onclick="signup()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">회원가입</button>
+      <p id="signupError" class="text-red-500 text-sm text-center"></p>
+      <p class="text-center text-sm text-gray-500">이미 계정이 있으신가요? <a href="#" onclick="showLogin()" class="text-blue-500 underline">로그인으로 돌아가기</a></p>
     </div>
-  </main>
+  </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script>
-    // Firebase 설정
-    const firebaseConfig = {
-      apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
-      authDomain: "capstone-cms-ee242.firebaseapp.com",
-      projectId: "capstone-cms-ee242",
-      storageBucket: "capstone-cms-ee242.firebasestorage.app",
-      messagingSenderId: "854989357781",
-      appId: "1:854989357781:web:f204fe38859cfc57e1585c"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-
-    // 창 전환
-    document.getElementById("goLogin").onclick = () => {
-      document.getElementById("loginBox").classList.remove("hidden");
-      document.getElementById("signupBox").classList.add("hidden");
-    };
-    document.getElementById("goSignup").onclick = () => {
-      document.getElementById("signupBox").classList.remove("hidden");
+    function showSignup() {
       document.getElementById("loginBox").classList.add("hidden");
-    };
-
-    // 로그인
+      document.getElementById("signupBox").classList.remove("hidden");
+    }
+    function showLogin() {
+      document.getElementById("signupBox").classList.add("hidden");
+      document.getElementById("loginBox").classList.remove("hidden");
+    }
     function login() {
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-          location.href = "dashboard.html";  // 로그인 성공 시 대시보드로 이동
-        })
-        .catch(err => {
-          document.getElementById("loginError").innerText = err.message;
-        });
+      firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(() => location.href = "dashboard.html")
+        .catch(err => document.getElementById("loginError").innerText = err.message);
     }
-
-    // 회원가입
     function signup() {
       const email = document.getElementById("signupEmail").value;
       const password = document.getElementById("signupPassword").value;
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(() => {
-          alert("회원가입 성공! 로그인해주세요.");
-          document.getElementById("goLogin").click();
-        })
-        .catch(err => {
-          document.getElementById("signupError").innerText = err.message;
-        });
+      firebase.auth().createUserWithEmailAndPassword(email, password)
+        .then(() => alert("회원가입 성공! 로그인 해주세요."))
+        .catch(err => document.getElementById("signupError").innerText = err.message);
     }
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
+      authDomain: "capstone-cms-ee242.firebaseapp.com",
+    });
   </script>
 </body>
 </html>
