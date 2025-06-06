@@ -180,12 +180,21 @@
           });
       }
 
-      function deleteKiosk(docId) {
-        if (!confirm("이 키오스크를 삭제하시겠습니까?")) return;
-        db.collection("kiosks").doc(docId).delete()
-          .then(() => loadContents())
-          .catch(err => alert("키오스크 삭제 실패: " + err.message));
-      }
+    function deleteKiosk(docId) {
+      console.log("삭제 시도:", docId);
+      if (!confirm("이 키오스크를 삭제하시겠습니까?")) return;
+
+      db.collection("kiosks").doc(docId).delete()
+        .then(() => {
+          console.log("삭제 완료");
+          loadContents();
+        })
+        .catch(err => {
+          alert("키오스크 삭제 실패: " + err.message);
+          console.error("삭제 에러:", err);
+        });
+    }
+
 
       function addKiosk() {
         const name = prompt("키오스크 이름을 입력하세요:");
