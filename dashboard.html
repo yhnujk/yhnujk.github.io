@@ -9,7 +9,7 @@
 <body class="h-screen bg-gray-100 text-gray-800">
 
   <div class="flex h-full">
-    <!-- 좌측 사이드바 -->
+    <!-- 사이드바 -->
     <aside class="w-64 bg-white shadow-lg flex flex-col items-center py-6 gap-4">
       <img src="로고.png" alt="로고" class="w-20 h-20 object-contain mb-4" />
       <button onclick="toggleUploadForm()" class="w-52 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">📤 콘텐츠 등록</button>
@@ -49,28 +49,34 @@
       appId: "1:854989357781:web:f204fe38859cfc57e1585c"
     };
     firebase.initializeApp(firebaseConfig);
+
     const auth = firebase.auth();
     const db = firebase.firestore();
     const storage = firebase.storage();
 
-    // 인증 상태 확인 후 콘텐츠 로드
+    let loggingOut = false; // ✅ 로그아웃 여부 추적 변수
+
+    // 인증 상태 확인
     auth.onAuthStateChanged(user => {
       if (!user) {
-        alert("로그인이 필요합니다.");
+        if (!loggingOut) {
+          alert("로그인이 필요합니다.");
+        }
         location.href = "index.html";
       } else {
         loadContents();
       }
     });
 
-    // 로그아웃
+    // 로그아웃 함수
     function logout() {
+      loggingOut = true;
       auth.signOut().then(() => {
         location.href = "index.html";
       });
     }
 
-    // 업로드 폼 표시/숨기기
+    // 콘텐츠 등록 폼 토글
     function toggleUploadForm() {
       document.getElementById("uploadForm").classList.toggle("hidden");
     }
@@ -117,7 +123,7 @@
       );
     }
 
-    // 사용자 콘텐츠 불러오기
+    // 콘텐츠 로드
     function loadContents() {
       const gallery = document.getElementById("contentGallery");
       const user = auth.currentUser;
@@ -182,7 +188,7 @@
         .catch(err => alert("삭제 실패: " + err.message));
     }
 
-    // 스케줄 관리 (추후 구현용 더미 함수)
+    // 스케줄 기능 자리
     function showSection(id) {
       alert("스케줄 관리 기능은 아직 구현되지 않았습니다.");
     }
