@@ -22,8 +22,8 @@
     <aside class="w-64 bg-white shadow-lg flex flex-col items-center py-6 px-4 gap-4">
       <img src="로고.jpg" alt="로고" class="w-24 h-24 object-contain rounded-full" />
       <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full">로그아웃</button>
-      <button onclick="toggleUploadForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">콘텐츠 등록</button>
-      <button onclick="toggleUploadForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
+      <button onclick="handleUploadView()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">콘텐츠 등록</button>
+      <button onclick="handleScheduleView()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
       <div id="kioskStatus" class="text-sm text-gray-600 pt-4"></div>
     </aside>
 
@@ -31,7 +31,7 @@
     <main class="flex-1 p-6 overflow-y-auto">
       <h1 class="text-2xl font-bold mb-4">CMS관리 창</h1>
 
-      <!-- 업로드 폼 -->
+      <!-- 콘텐츠 업로드 폼 -->
       <div id="uploadForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
         <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
         <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full mb-2" />
@@ -87,8 +87,14 @@
       });
     }
 
-    function toggleUploadForm() {
-      document.getElementById("uploadForm").classList.toggle("hidden");
+    function handleUploadView() {
+      document.getElementById("uploadForm").classList.remove("hidden");
+      loadContents(firebase.auth().currentUser);
+    }
+
+    function handleScheduleView() {
+      document.getElementById("uploadForm").classList.add("hidden");
+      loadScheduledContents(firebase.auth().currentUser);
     }
 
     function uploadFile() {
@@ -132,6 +138,24 @@
     function loadContents(user) {
       const gallery = document.getElementById("contentGallery");
       gallery.innerHTML = "<p class='text-gray-400'>불러오는 중...</p>";
+
+      db.collection("contents")
+        .where("userId", "==", user.uid)
+        .orderBy("createdAt", "desc")
+        .get()
+        .then(snapshot => {
+          gallery.innerHTML = "";
+          if (snapshot.empty) {
+            gallery.innerHTML = "<p class='text-gray-400'>등록된 콘텐츠가 없습니다.</p>";
+            return;
+          }
+          snapshot.forEach(doc => renderCard(doc));
+        });
+    }
+
+    function loadScheduledContents(user) {
+      const gallery = document.getElementById("contentGallery");
+      gallery.innerHTML = "<p class='text-gray-400'>불러오는 중...</p>";
       const now = firebase.firestore.Timestamp.now();
 
       db.collection("contents")
@@ -143,40 +167,43 @@
         .then(snapshot => {
           gallery.innerHTML = "";
           if (snapshot.empty) {
-            gallery.innerHTML = "<p class='text-gray-400'>노출 가능한 콘텐츠가 없습니다.</p>";
+            gallery.innerHTML = "<p class='text-gray-400'>현재 노출 중인 콘텐츠가 없습니다.</p>";
             return;
           }
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const card = document.createElement("div");
-            card.className = "bg-white rounded shadow p-3";
-
-            const img = document.createElement("img");
-            img.src = data.fileUrl;
-            img.alt = data.title;
-            img.className = "w-full h-40 object-cover rounded cursor-pointer";
-            img.onclick = () => openModal(data.fileUrl);
-            card.appendChild(img);
-
-            const title = document.createElement("h4");
-            title.className = "font-bold mt-2";
-            title.textContent = data.title;
-            card.appendChild(title);
-
-            const desc = document.createElement("p");
-            desc.className = "text-sm text-gray-600";
-            desc.textContent = data.description;
-            card.appendChild(desc);
-
-            const delBtn = document.createElement("button");
-            delBtn.className = "mt-2 text-red-500 hover:text-red-700 text-sm";
-            delBtn.textContent = "삭제";
-            delBtn.onclick = () => deleteContent(doc.id, data.fileName, user);
-            card.appendChild(delBtn);
-
-            gallery.appendChild(card);
-          });
+          snapshot.forEach(doc => renderCard(doc));
         });
+    }
+
+    function renderCard(doc) {
+      const data = doc.data();
+      const gallery = document.getElementById("contentGallery");
+      const card = document.createElement("div");
+      card.className = "bg-white rounded shadow p-3";
+
+      const img = document.createElement("img");
+      img.src = data.fileUrl;
+      img.alt = data.title;
+      img.className = "w-full h-40 object-cover rounded cursor-pointer";
+      img.onclick = () => openModal(data.fileUrl);
+      card.appendChild(img);
+
+      const title = document.createElement("h4");
+      title.className = "font-bold mt-2";
+      title.textContent = data.title;
+      card.appendChild(title);
+
+      const desc = document.createElement("p");
+      desc.className = "text-sm text-gray-600";
+      desc.textContent = data.description;
+      card.appendChild(desc);
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "mt-2 text-red-500 hover:text-red-700 text-sm";
+      delBtn.textContent = "삭제";
+      delBtn.onclick = () => deleteContent(doc.id, data.fileName, firebase.auth().currentUser);
+      card.appendChild(delBtn);
+
+      gallery.appendChild(card);
     }
 
     function deleteContent(docId, fileName, user) {
