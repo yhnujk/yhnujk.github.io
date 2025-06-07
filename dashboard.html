@@ -23,7 +23,6 @@
       <img src="로고.jpg" alt="로고" class="w-24 h-24 object-contain rounded-full" />
       <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full">로그아웃</button>
       <button onclick="toggleUploadForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">콘텐츠 등록</button>
-      <button onclick="alert('스케줄 관리 페이지 준비 중')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
       <div id="kioskStatus" class="text-sm text-gray-600 pt-4"></div>
     </aside>
 
@@ -36,6 +35,10 @@
         <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
         <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full mb-2" />
         <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full mb-2" />
+        <label class="block text-sm mb-1">노출 시작일시</label>
+        <input type="datetime-local" id="startDateInput" class="border p-2 rounded w-full mb-2" />
+        <label class="block text-sm mb-1">노출 종료일시</label>
+        <input type="datetime-local" id="endDateInput" class="border p-2 rounded w-full mb-2" />
         <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
         <p id="upload-status" class="text-sm mt-2"></p>
       </div>
@@ -91,8 +94,10 @@
       const file = document.getElementById("fileInput").files[0];
       const title = document.getElementById("title").value;
       const description = document.getElementById("description").value;
+      const startDate = new Date(document.getElementById("startDateInput").value);
+      const endDate = new Date(document.getElementById("endDateInput").value);
       const user = firebase.auth().currentUser;
-      if (!file || !title || !description || !user) return alert("모든 항목을 입력해주세요.");
+      if (!file || !title || !description || !startDate || !endDate || !user) return alert("모든 항목을 입력해주세요.");
 
       const storageRef = storage.ref("contents/" + file.name);
       const uploadTask = storageRef.put(file);
@@ -107,12 +112,16 @@
             fileName: file.name,
             fileUrl: downloadURL,
             userId: user.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            startDate: firebase.firestore.Timestamp.fromDate(startDate),
+            endDate: firebase.firestore.Timestamp.fromDate(endDate)
           }).then(() => {
             document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
             document.getElementById("fileInput").value = "";
             document.getElementById("title").value = "";
             document.getElementById("description").value = "";
+            document.getElementById("startDateInput").value = "";
+            document.getElementById("endDateInput").value = "";
             loadContents(user);
           });
         });
@@ -122,15 +131,18 @@
     function loadContents(user) {
       const gallery = document.getElementById("contentGallery");
       gallery.innerHTML = "<p class='text-gray-400'>불러오는 중...</p>";
+      const now = firebase.firestore.Timestamp.now();
 
       db.collection("contents")
         .where("userId", "==", user.uid)
+        .where("startDate", "<=", now)
+        .where("endDate", ">=", now)
         .orderBy("createdAt", "desc")
         .get()
         .then(snapshot => {
           gallery.innerHTML = "";
           if (snapshot.empty) {
-            gallery.innerHTML = "<p class='text-gray-400'>등록된 콘텐츠가 없습니다.</p>";
+            gallery.innerHTML = "<p class='text-gray-400'>노출 가능한 콘텐츠가 없습니다.</p>";
             return;
           }
           snapshot.forEach(doc => {
