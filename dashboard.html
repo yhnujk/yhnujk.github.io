@@ -45,7 +45,7 @@
       </div>
 
       <!-- 콘텐츠 갤러리 -->
-      <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+      <div id="contentGallery" class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
     </main>
   </div>
 
@@ -76,7 +76,7 @@
       if (!user) {
         window.location.href = "index.html";
       } else {
-        loadContents(user);
+        handleUploadView();
         loadKiosks();
       }
     });
@@ -89,12 +89,13 @@
 
     function handleUploadView() {
       document.getElementById("uploadForm").classList.remove("hidden");
-      loadContents(firebase.auth().currentUser);
+      document.getElementById("contentGallery").classList.add("hidden");
     }
 
     function handleScheduleView() {
       document.getElementById("uploadForm").classList.add("hidden");
-      loadScheduledContents(firebase.auth().currentUser);
+      document.getElementById("contentGallery").classList.remove("hidden");
+      loadAllMyContents(firebase.auth().currentUser);
     }
 
     function uploadFile() {
@@ -129,13 +130,12 @@
             document.getElementById("description").value = "";
             document.getElementById("startDateInput").value = "";
             document.getElementById("endDateInput").value = "";
-            loadContents(user);
           });
         });
       });
     }
 
-    function loadContents(user) {
+    function loadAllMyContents(user) {
       const gallery = document.getElementById("contentGallery");
       gallery.innerHTML = "<p class='text-gray-400'>불러오는 중...</p>";
 
@@ -146,35 +146,14 @@
         .then(snapshot => {
           gallery.innerHTML = "";
           if (snapshot.empty) {
-            gallery.innerHTML = "<p class='text-gray-400'>등록된 콘텐츠가 없습니다.</p>";
+            gallery.innerHTML = "<p class='text-gray-400'>콘텐츠가 없습니다.</p>";
             return;
           }
-          snapshot.forEach(doc => renderCard(doc));
+          snapshot.forEach(doc => renderCardWithSchedule(doc));
         });
     }
 
-    function loadScheduledContents(user) {
-      const gallery = document.getElementById("contentGallery");
-      gallery.innerHTML = "<p class='text-gray-400'>불러오는 중...</p>";
-      const now = firebase.firestore.Timestamp.now();
-
-      db.collection("contents")
-        .where("userId", "==", user.uid)
-        .where("startDate", "<=", now)
-        .where("endDate", ">=", now)
-        .orderBy("createdAt", "desc")
-        .get()
-        .then(snapshot => {
-          gallery.innerHTML = "";
-          if (snapshot.empty) {
-            gallery.innerHTML = "<p class='text-gray-400'>현재 노출 중인 콘텐츠가 없습니다.</p>";
-            return;
-          }
-          snapshot.forEach(doc => renderCard(doc));
-        });
-    }
-
-    function renderCard(doc) {
+    function renderCardWithSchedule(doc) {
       const data = doc.data();
       const gallery = document.getElementById("contentGallery");
       const card = document.createElement("div");
@@ -183,44 +162,55 @@
       const img = document.createElement("img");
       img.src = data.fileUrl;
       img.alt = data.title;
-      img.className = "w-full h-40 object-cover rounded cursor-pointer";
-      img.onclick = () => openModal(data.fileUrl);
+      img.className = "w-full h-40 object-cover rounded mb-2";
       card.appendChild(img);
 
       const title = document.createElement("h4");
-      title.className = "font-bold mt-2";
+      title.className = "font-bold text-lg";
       title.textContent = data.title;
       card.appendChild(title);
 
       const desc = document.createElement("p");
-      desc.className = "text-sm text-gray-600";
+      desc.className = "text-sm text-gray-600 mb-2";
       desc.textContent = data.description;
       card.appendChild(desc);
 
-      const delBtn = document.createElement("button");
-      delBtn.className = "mt-2 text-red-500 hover:text-red-700 text-sm";
-      delBtn.textContent = "삭제";
-      delBtn.onclick = () => deleteContent(doc.id, data.fileName, firebase.auth().currentUser);
-      card.appendChild(delBtn);
+      const startInput = document.createElement("input");
+      startInput.type = "datetime-local";
+      startInput.value = data.startDate?.toDate().toISOString().slice(0,16) || "";
+      startInput.className = "border p-1 rounded w-full mb-2";
+
+      const endInput = document.createElement("input");
+      endInput.type = "datetime-local";
+      endInput.value = data.endDate?.toDate().toISOString().slice(0,16) || "";
+      endInput.className = "border p-1 rounded w-full mb-2";
+
+      const saveBtn = document.createElement("button");
+      saveBtn.textContent = "스케줄 저장";
+      saveBtn.className = "bg-blue-500 hover:bg-blue-600 text-white text-sm px-2 py-1 rounded w-full";
+      saveBtn.onclick = () => {
+        const newStart = new Date(startInput.value);
+        const newEnd = new Date(endInput.value);
+        db.collection("contents").doc(doc.id).update({
+          startDate: firebase.firestore.Timestamp.fromDate(newStart),
+          endDate: firebase.firestore.Timestamp.fromDate(newEnd)
+        }).then(() => alert("✅ 스케줄이 저장되었습니다."));
+      };
+
+      card.appendChild(startInput);
+      card.appendChild(endInput);
+      card.appendChild(saveBtn);
 
       gallery.appendChild(card);
     }
 
-    function deleteContent(docId, fileName, user) {
-      if (!confirm("정말 삭제하시겠습니까?")) return;
-      db.collection("contents").doc(docId).delete()
-        .then(() => storage.ref("contents/" + fileName).delete())
-        .then(() => loadContents(user))
-        .catch(err => alert("삭제 실패: " + err.message));
+    function closeModal() {
+      document.getElementById("modal").classList.add("hidden");
     }
 
     function openModal(url) {
       document.getElementById("modalImage").src = url;
       document.getElementById("modal").classList.remove("hidden");
-    }
-
-    function closeModal() {
-      document.getElementById("modal").classList.add("hidden");
     }
 
     function loadKiosks() {
