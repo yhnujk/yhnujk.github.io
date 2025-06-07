@@ -36,10 +36,6 @@
         <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
         <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full mb-2" />
         <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full mb-2" />
-        <label class="block text-sm mb-1">노출 시작일시</label>
-        <input type="datetime-local" id="startDateInput" class="border p-2 rounded w-full mb-2" />
-        <label class="block text-sm mb-1">노출 종료일시</label>
-        <input type="datetime-local" id="endDateInput" class="border p-2 rounded w-full mb-2" />
         <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
         <p id="upload-status" class="text-sm mt-2"></p>
       </div>
@@ -89,7 +85,8 @@
 
     function handleUploadView() {
       document.getElementById("uploadForm").classList.remove("hidden");
-      document.getElementById("contentGallery").classList.add("hidden");
+      document.getElementById("contentGallery").classList.remove("hidden");
+      loadMyContents(firebase.auth().currentUser);
     }
 
     function handleScheduleView() {
@@ -102,10 +99,8 @@
       const file = document.getElementById("fileInput").files[0];
       const title = document.getElementById("title").value;
       const description = document.getElementById("description").value;
-      const startDate = new Date(document.getElementById("startDateInput").value);
-      const endDate = new Date(document.getElementById("endDateInput").value);
       const user = firebase.auth().currentUser;
-      if (!file || !title || !description || !startDate || !endDate || !user) return alert("모든 항목을 입력해주세요.");
+      if (!file || !title || !description || !user) return alert("모든 항목을 입력해주세요.");
 
       const storageRef = storage.ref("contents/" + file.name);
       const uploadTask = storageRef.put(file);
@@ -120,19 +115,65 @@
             fileName: file.name,
             fileUrl: downloadURL,
             userId: user.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            startDate: firebase.firestore.Timestamp.fromDate(startDate),
-            endDate: firebase.firestore.Timestamp.fromDate(endDate)
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
           }).then(() => {
             document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
             document.getElementById("fileInput").value = "";
             document.getElementById("title").value = "";
             document.getElementById("description").value = "";
-            document.getElementById("startDateInput").value = "";
-            document.getElementById("endDateInput").value = "";
+            loadMyContents(user);
           });
         });
       });
+    }
+
+    function loadMyContents(user) {
+      const gallery = document.getElementById("contentGallery");
+      gallery.innerHTML = "<p class='text-gray-400'>불러오는 중...</p>";
+
+      db.collection("contents")
+        .where("userId", "==", user.uid)
+        .orderBy("createdAt", "desc")
+        .get()
+        .then(snapshot => {
+          gallery.innerHTML = "";
+          if (snapshot.empty) {
+            gallery.innerHTML = "<p class='text-gray-400'>등록된 콘텐츠가 없습니다.</p>";
+            return;
+          }
+          snapshot.forEach(doc => renderSimpleCard(doc));
+        });
+    }
+
+    function renderSimpleCard(doc) {
+      const data = doc.data();
+      const gallery = document.getElementById("contentGallery");
+      const card = document.createElement("div");
+      card.className = "bg-white rounded shadow p-3";
+
+      const img = document.createElement("img");
+      img.src = data.fileUrl;
+      img.alt = data.title;
+      img.className = "w-full h-40 object-cover rounded mb-2";
+      card.appendChild(img);
+
+      const title = document.createElement("h4");
+      title.className = "font-bold text-lg";
+      title.textContent = data.title;
+      card.appendChild(title);
+
+      const desc = document.createElement("p");
+      desc.className = "text-sm text-gray-600 mb-2";
+      desc.textContent = data.description;
+      card.appendChild(desc);
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "mt-2 text-red-500 hover:text-red-700 text-sm";
+      delBtn.textContent = "삭제";
+      delBtn.onclick = () => deleteContent(doc.id, data.fileName, firebase.auth().currentUser);
+      card.appendChild(delBtn);
+
+      gallery.appendChild(card);
     }
 
     function loadAllMyContents(user) {
@@ -202,6 +243,14 @@
       card.appendChild(saveBtn);
 
       gallery.appendChild(card);
+    }
+
+    function deleteContent(docId, fileName, user) {
+      if (!confirm("정말 삭제하시겠습니까?")) return;
+      db.collection("contents").doc(docId).delete()
+        .then(() => storage.ref("contents/" + fileName).delete())
+        .then(() => handleUploadView())
+        .catch(err => alert("삭제 실패: " + err.message));
     }
 
     function closeModal() {
