@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -25,52 +24,45 @@
       <button onclick="toggleUploadForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">콘텐츠 등록</button>
       <button onclick="toggleScheduleForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
       <button onclick="toggleProfileForm()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full">프로필 등록</button>
-      <div id="kioskStatus" class="text-sm text-gray-600 pt-4"></div>
     </aside>
 
     <main class="flex-1 p-6 overflow-y-auto">
       <h1 class="text-2xl font-bold mb-4">CMS관리 창</h1>
 
-      <div id="uploadForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
-        <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
-        <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full mb-2" />
-        <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full mb-2" />
-        <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
-        <p id="upload-status" class="text-sm mt-2"></p>
+      <!-- 콘텐츠 등록 폼 -->
+      <div id="uploadForm" class="hidden">
+        <div class="bg-white p-4 rounded shadow mb-6 max-w-lg">
+          <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
+          <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full mb-2" />
+          <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full mb-2" />
+          <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
+          <p id="upload-status" class="text-sm mt-2"></p>
+        </div>
+        <!-- 콘텐츠 갤러리 (등록창에서만 노출) -->
+        <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
 
-      <div id="scheduleForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
-        <h2 class="font-bold text-lg mb-2">스케줄 설정</h2>
-        <select id="contentSelect" class="border p-2 rounded w-full mb-2"></select>
-        <label class="block text-sm mb-1">노출 시작일시</label>
-        <input type="datetime-local" id="startDateInput" class="border p-2 rounded w-full mb-2" />
-        <label class="block text-sm mb-1">노출 종료일시</label>
-        <input type="datetime-local" id="endDateInput" class="border p-2 rounded w-full mb-2" />
-        <label class="block text-sm mb-1">프로필 선택</label>
-        <select id="profileSelect" class="border p-2 rounded w-full mb-2"></select>
-        <button onclick="saveSchedule()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">저장</button>
-        <p id="schedule-status" class="text-sm mt-2"></p>
+      <!-- 스케줄 관리 폼 -->
+      <div id="scheduleForm" class="hidden">
+        <div id="scheduleGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
 
+      <!-- 프로필 등록 폼 -->
       <div id="profileForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
         <h2 class="font-bold text-lg mb-2">프로필 등록</h2>
         <input type="text" id="profileNameInput" placeholder="프로필 이름" class="border p-2 rounded w-full mb-2" />
         <button onclick="registerProfile()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">등록</button>
         <p id="profile-status" class="text-sm mt-2"></p>
+        <div id="profileList" class="mt-4"></div>
       </div>
-
-      <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
     </main>
-  </div>
-
-  <div id="modal" class="hidden modal" onclick="closeModal()">
-    <img id="modalImage" class="max-w-4xl max-h-[80vh] rounded shadow-lg" />
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
@@ -87,9 +79,8 @@
     firebase.auth().onAuthStateChanged(user => {
       if (!user) return window.location.href = "index.html";
       loadContents(user);
-      populateContentSelect(user);
+      loadScheduleContents(user);
       loadProfiles();
-      loadKiosks();
     });
 
     function logout() {
@@ -112,6 +103,7 @@
       document.getElementById("profileForm").classList.toggle("hidden");
       document.getElementById("uploadForm").classList.add("hidden");
       document.getElementById("scheduleForm").classList.add("hidden");
+      loadProfiles(); // 갱신
     }
 
     function uploadFile() {
@@ -140,28 +132,9 @@
             document.getElementById("title").value = "";
             document.getElementById("description").value = "";
             loadContents(user);
-            populateContentSelect(user);
+            loadScheduleContents(user);
           });
         });
-      });
-    }
-
-    function saveSchedule() {
-      const contentId = document.getElementById("contentSelect").value;
-      const startDate = new Date(document.getElementById("startDateInput").value);
-      const endDate = new Date(document.getElementById("endDateInput").value);
-      const profileId = document.getElementById("profileSelect").value;
-      const user = firebase.auth().currentUser;
-      if (!contentId || !startDate || !endDate || !profileId || !user) return alert("모든 항목을 입력해주세요.");
-      db.collection("schedules").add({
-        contentId,
-        profileId,
-        startDate: firebase.firestore.Timestamp.fromDate(startDate),
-        endDate: firebase.firestore.Timestamp.fromDate(endDate),
-        userId: user.uid,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        document.getElementById("schedule-status").innerText = "✅ 스케줄 저장 완료!";
       });
     }
 
@@ -170,100 +143,103 @@
       if (!name) return alert("프로필 이름을 입력해주세요.");
       db.collection("profiles").add({
         name,
+        status: "off",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
         document.getElementById("profile-status").innerText = "✅ 프로필 등록 완료!";
         document.getElementById("profileNameInput").value = "";
         loadProfiles();
-        loadKiosks();
+      });
+    }
+
+    function loadProfiles() {
+      const list = document.getElementById("profileList");
+      list.innerHTML = "";
+      db.collection("profiles").get().then(snapshot => {
+        list.innerHTML = `<p class="mb-2 font-bold">총 ${snapshot.size}개의 프로필 등록됨</p>`;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const div = document.createElement("div");
+          div.className = `p-2 mb-2 rounded text-white ${data.status === "on" ? 'bg-green-500' : 'bg-gray-400'}`;
+          div.textContent = data.name + (data.status === "on" ? " (ON)" : " (OFF)");
+          list.appendChild(div);
+        });
       });
     }
 
     function loadContents(user) {
       const gallery = document.getElementById("contentGallery");
-      gallery.innerHTML = "<p class='text-gray-400'>불러오는 중...</p>";
+      if (!gallery) return;
       db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
         gallery.innerHTML = "";
-        if (snapshot.empty) {
-          gallery.innerHTML = "<p class='text-gray-400'>등록된 콘텐츠가 없습니다.</p>";
-          return;
-        }
         snapshot.forEach(doc => {
           const data = doc.data();
           const card = document.createElement("div");
           card.className = "bg-white rounded shadow p-3";
-          const img = document.createElement("img");
-          img.src = data.fileUrl;
-          img.alt = data.title;
-          img.className = "w-full h-40 object-cover rounded cursor-pointer";
-          img.onclick = () => openModal(data.fileUrl);
-          card.appendChild(img);
-          const title = document.createElement("h4");
-          title.className = "font-bold mt-2";
-          title.textContent = data.title;
-          card.appendChild(title);
-          const desc = document.createElement("p");
-          desc.className = "text-sm text-gray-600";
-          desc.textContent = data.description;
-          card.appendChild(desc);
-          const delBtn = document.createElement("button");
-          delBtn.className = "mt-2 text-red-500 hover:text-red-700 text-sm";
-          delBtn.textContent = "삭제";
-          delBtn.onclick = () => deleteContent(doc.id, data.fileName, user);
-          card.appendChild(delBtn);
+          card.innerHTML = `
+            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
+            <h4 class="font-bold">${data.title}</h4>
+            <p class="text-sm text-gray-600">${data.description}</p>
+          `;
           gallery.appendChild(card);
         });
       });
     }
 
-    function populateContentSelect(user) {
-      const select = document.getElementById("contentSelect");
-      db.collection("contents").where("userId", "==", user.uid).get().then(snapshot => {
+    function loadScheduleContents(user) {
+      const scheduleGallery = document.getElementById("scheduleGallery");
+      if (!scheduleGallery) return;
+      db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
+        scheduleGallery.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const card = document.createElement("div");
+          card.className = "bg-white rounded shadow p-3";
+          card.innerHTML = `
+            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
+            <h4 class="font-bold">${data.title}</h4>
+            <label class="text-sm block mt-2">노출 시작일시</label>
+            <input type="datetime-local" class="border p-1 w-full mb-1" id="start-${doc.id}" />
+            <label class="text-sm block">노출 종료일시</label>
+            <input type="datetime-local" class="border p-1 w-full mb-1" id="end-${doc.id}" />
+            <label class="text-sm block">프로필 선택</label>
+            <select id="profile-${doc.id}" class="border p-1 w-full mb-2"></select>
+            <button onclick="saveSchedule('${doc.id}')" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm">스케줄 저장</button>
+          `;
+          scheduleGallery.appendChild(card);
+          populateProfileSelect(`profile-${doc.id}`);
+        });
+      });
+    }
+
+    function populateProfileSelect(selectId) {
+      const select = document.getElementById(selectId);
+      if (!select) return;
+      db.collection("profiles").get().then(snapshot => {
         select.innerHTML = "";
         snapshot.forEach(doc => {
           const option = document.createElement("option");
           option.value = doc.id;
-          option.textContent = doc.data().title;
+          option.textContent = doc.data().name;
           select.appendChild(option);
         });
       });
     }
 
-    function loadProfiles() {
-      const profileSelect = document.getElementById("profileSelect");
-      db.collection("profiles").get().then(snapshot => {
-        profileSelect.innerHTML = "";
-        snapshot.forEach(doc => {
-          const option = document.createElement("option");
-          option.value = doc.id;
-          option.textContent = doc.data().name;
-          profileSelect.appendChild(option);
-        });
-      });
-    }
-
-    function loadKiosks() {
-      const statusBox = document.getElementById("kioskStatus");
-      db.collection("profiles").get().then(snapshot => {
-        statusBox.innerText = `총 ${snapshot.size}개의 프로필 등록됨`;
-      });
-    }
-
-    function deleteContent(docId, fileName, user) {
-      if (!confirm("정말 삭제하시겠습니까?")) return;
-      db.collection("contents").doc(docId).delete()
-        .then(() => storage.ref("contents/" + fileName).delete())
-        .then(() => loadContents(user))
-        .catch(err => alert("삭제 실패: " + err.message));
-    }
-
-    function openModal(url) {
-      document.getElementById("modalImage").src = url;
-      document.getElementById("modal").classList.remove("hidden");
-    }
-
-    function closeModal() {
-      document.getElementById("modal").classList.add("hidden");
+    function saveSchedule(contentId) {
+      const start = new Date(document.getElementById(`start-${contentId}`).value);
+      const end = new Date(document.getElementById(`end-${contentId}`).value);
+      const profileId = document.getElementById(`profile-${contentId}`).value;
+      const user = firebase.auth().currentUser;
+      if (!start || !end || !profileId || !user) return alert("모든 값을 입력하세요.");
+      db.collection("schedules").add({
+        contentId,
+        profileId,
+        startDate: firebase.firestore.Timestamp.fromDate(start),
+        endDate: firebase.firestore.Timestamp.fromDate(end),
+        userId: user.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => alert("✅ 스케줄 저장 완료!"));
     }
   </script>
 </body>
