@@ -73,12 +73,13 @@
 
   <script>
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
+      authDomain: "capstone-cms-ee242.firebaseapp.com",
+      projectId: "capstone-cms-ee242",
+      storageBucket: "capstone-cms-ee242.firebasestorage.app",
+      messagingSenderId: "854989357781",
+      appId: "1:854989357781:web:f204fe38859cfc57e1585c",
+      measurementId: "G-7RZWYF7Z6R"
     };
 
   firebase.auth().onAuthStateChanged(user => {
@@ -94,7 +95,6 @@
       window.location.href = "index.html";
     }
   });
-  
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const storage = firebase.storage();
