@@ -137,6 +137,73 @@
       });
     }
 
+    function deleteContent(docId, fileName) {
+      if (!confirm("이 콘텐츠를 삭제하시겠습니까?")) return;
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      db.collection("contents").doc(docId).delete().then(() => {
+        return storage.ref("contents/" + fileName).delete();
+      }).then(() => {
+        alert("✅ 콘텐츠 삭제 완료!");
+        loadContents(user);
+        loadScheduleContents(user);
+      }).catch(error => {
+        if (error.code === 'storage/object-not-found') {
+          alert("⚠️ 이미 삭제된 콘텐츠입니다. Firestore 기록만 삭제되었습니다.");
+          loadContents(user);
+          loadScheduleContents(user);
+        } else {
+          alert("삭제 실패: " + error.message);
+        }
+      });
+    }
+
+    function loadContents(user) {
+      const gallery = document.getElementById("contentGallery");
+      if (!gallery) return;
+      db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
+        gallery.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const card = document.createElement("div");
+          card.className = "bg-white rounded shadow p-3 relative";
+          card.innerHTML = `
+            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
+            <h4 class="font-bold">${data.title}</h4>
+            <p class="text-sm text-gray-600 mb-2">${data.description}</p>
+            <button onclick="deleteContent('${doc.id}', '${data.fileName}')" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded">삭제</button>
+          `;
+          gallery.appendChild(card);
+        });
+      });
+    }
+
+    function loadScheduleContents(user) {
+      const scheduleGallery = document.getElementById("scheduleGallery");
+      if (!scheduleGallery) return;
+      db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
+        scheduleGallery.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const card = document.createElement("div");
+          card.className = "bg-white rounded shadow p-3";
+          card.innerHTML = `
+            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
+            <h4 class="font-bold">${data.title}</h4>
+            <label class="text-sm block mt-2">노출 시작일시</label>
+            <input type="datetime-local" class="border p-1 w-full mb-1" id="start-${doc.id}" />
+            <label class="text-sm block">노출 종료일시</label>
+            <input type="datetime-local" class="border p-1 w-full mb-1" id="end-${doc.id}" />
+            <label class="text-sm block">프로필 선택</label>
+            <select id="profile-${doc.id}" class="border p-1 w-full mb-2"></select>
+            <button onclick="saveSchedule('${doc.id}')" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm">스케줄 저장</button>
+          `;
+          scheduleGallery.appendChild(card);
+          populateProfileSelect(`profile-${doc.id}`);
+        });
+      });
+    }
+
     function saveSchedule(contentId) {
       const start = new Date(document.getElementById(`start-${contentId}`).value);
       const end = new Date(document.getElementById(`end-${contentId}`).value);
@@ -248,67 +315,6 @@
           option.value = doc.id;
           option.textContent = doc.data().profileName;
           select.appendChild(option);
-        });
-      });
-    }
-
-    function loadContents(user) {
-      const gallery = document.getElementById("contentGallery");
-      if (!gallery) return;
-      db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
-        gallery.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const card = document.createElement("div");
-          card.className = "bg-white rounded shadow p-3 relative";
-          card.innerHTML = `
-            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
-            <h4 class="font-bold">${data.title}</h4>
-            <p class="text-sm text-gray-600 mb-2">${data.description}</p>
-            <button onclick="deleteContent('${doc.id}', '${data.fileName}')" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded">삭제</button>
-          `;
-          gallery.appendChild(card);
-        });
-      });
-    }
-
-    function deleteContent(docId, fileName) {
-      if (!confirm("이 콘텐츠를 삭제하시겠습니까?")) return;
-      const user = firebase.auth().currentUser;
-      if (!user) return;
-      db.collection("contents").doc(docId).delete().then(() => {
-        return storage.ref("contents/" + fileName).delete();
-      }).then(() => {
-        alert("✅ 콘텐츠 삭제 완료!");
-        loadContents(user);
-        loadScheduleContents(user);
-      }).catch(error => {
-        alert("삭제 실패: " + error.message);
-      });
-    }
-
-    function loadScheduleContents(user) {
-      const scheduleGallery = document.getElementById("scheduleGallery");
-      if (!scheduleGallery) return;
-      db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
-        scheduleGallery.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const card = document.createElement("div");
-          card.className = "bg-white rounded shadow p-3";
-          card.innerHTML = `
-            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
-            <h4 class="font-bold">${data.title}</h4>
-            <label class="text-sm block mt-2">노출 시작일시</label>
-            <input type="datetime-local" class="border p-1 w-full mb-1" id="start-${doc.id}" />
-            <label class="text-sm block">노출 종료일시</label>
-            <input type="datetime-local" class="border p-1 w-full mb-1" id="end-${doc.id}" />
-            <label class="text-sm block">프로필 선택</label>
-            <select id="profile-${doc.id}" class="border p-1 w-full mb-2"></select>
-            <button onclick="saveSchedule('${doc.id}')" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm">스케줄 저장</button>
-          `;
-          scheduleGallery.appendChild(card);
-          populateProfileSelect(`profile-${doc.id}`);
         });
       });
     }
