@@ -29,6 +29,7 @@
     <main class="flex-1 p-6 overflow-y-auto">
       <h1 class="text-2xl font-bold mb-4">CMS관리 창</h1>
 
+      <!-- 콘텐츠 등록 폼 -->
       <div id="uploadForm" class="hidden">
         <div class="bg-white p-4 rounded shadow mb-6 max-w-lg">
           <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
@@ -40,21 +41,18 @@
         <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
 
+      <!-- 스케줄 관리 폼 -->
       <div id="scheduleForm" class="hidden">
         <div id="scheduleGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
 
-      <div id="profileForm" class="hidden">
-        <div class="bg-white p-4 rounded shadow mb-6 max-w-lg">
-          <h2 class="font-bold text-lg mb-2">프로필 등록</h2>
-          <div class="mb-4">
-            <label for="profileNameInput" class="block text-sm font-medium">새 프로필 이름</label>
-            <input type="text" id="profileNameInput" placeholder="프로필 이름" class="border p-2 rounded w-full mt-1" />
-            <button onclick="registerProfile()" class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">등록</button>
-            <p id="profile-status" class="text-sm mt-2"></p>
-          </div>
-          <div id="profileList" class="border-t pt-4 mt-4"></div>
-        </div>
+      <!-- 프로필 등록 폼 -->
+      <div id="profileForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
+        <h2 class="font-bold text-lg mb-2">프로필 등록</h2>
+        <input type="text" id="profileNameInput" placeholder="프로필 이름" class="border p-2 rounded w-full mb-2" />
+        <button onclick="registerProfile()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">등록</button>
+        <p id="profile-status" class="text-sm mt-2"></p>
+        <div id="profileList" class="mt-4"></div>
       </div>
     </main>
   </div>
@@ -81,7 +79,7 @@
       if (!user) return window.location.href = "index.html";
       loadContents(user);
       loadScheduleContents(user);
-      loadProfiles(user);
+      loadProfiles();
     });
 
     function logout() {
@@ -104,8 +102,7 @@
       document.getElementById("profileForm").classList.toggle("hidden");
       document.getElementById("uploadForm").classList.add("hidden");
       document.getElementById("scheduleForm").classList.add("hidden");
-      const user = firebase.auth().currentUser;
-      loadProfiles(user);
+      loadProfiles();
     }
 
     function uploadFile() {
@@ -114,7 +111,6 @@
       const description = document.getElementById("description").value;
       const user = firebase.auth().currentUser;
       if (!file || !title || !description || !user) return alert("모든 항목을 입력해주세요.");
-
       const storageRef = storage.ref("contents/" + file.name);
       const uploadTask = storageRef.put(file);
 
@@ -127,7 +123,7 @@
             description,
             fileName: file.name,
             fileUrl: downloadURL,
-            userID: user.uid,
+            userId: user.uid,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           }).then(() => {
             document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
@@ -141,35 +137,41 @@
       });
     }
 
-    function loadContents(user) {
-      const gallery = document.getElementById("contentGallery");
-      if (!gallery) return;
-      db.collection("contents").where("userID", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
-        gallery.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const card = document.createElement("div");
-          card.className = "bg-white rounded shadow p-3";
-          card.innerHTML = `
-            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
-            <h4 class="font-bold">${data.title}</h4>
-            <p class="text-sm text-gray-600">${data.description}</p>
-            <button onclick="deleteContent('${doc.id}', '${data.fileName}')" class="mt-2 bg-red-500 text-white px-3 py-1 rounded text-sm">삭제</button>
-          `;
-          gallery.appendChild(card);
+    function saveSchedule(contentId) {
+      const start = new Date(document.getElementById(`start-${contentId}`).value);
+      const end = new Date(document.getElementById(`end-${contentId}`).value);
+      const profileId = document.getElementById(`profile-${contentId}`).value;
+      const user = firebase.auth().currentUser;
+      if (!start || !end || !profileId || !user) return alert("모든 값을 입력하세요.");
+
+      db.collection("schedules").add({
+        contentId,
+        profileId,
+        startDate: firebase.firestore.Timestamp.fromDate(start),
+        endDate: firebase.firestore.Timestamp.fromDate(end),
+        userId: user.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        db.collection("profiles").doc(profileId).update({
+          schedule: true,
+          start: firebase.firestore.Timestamp.fromDate(start),
+          end: firebase.firestore.Timestamp.fromDate(end),
+          contents: contentId
         });
+        alert("✅ 스케줄 저장 완료!");
+        loadProfiles();
       });
     }
 
-    function deleteContent(docId, fileName) {
-      if (!confirm("정말 삭제하시겠습니까?")) return;
-      const user = firebase.auth().currentUser;
-      db.collection("contents").doc(docId).delete().then(() => {
-        storage.ref("contents/" + fileName).delete().then(() => {
-          alert("✅ 삭제 완료");
-          loadContents(user);
-          loadScheduleContents(user);
-        });
+    function clearSchedule(profileId) {
+      db.collection("profiles").doc(profileId).update({
+        schedule: false,
+        start: firebase.firestore.FieldValue.delete(),
+        end: firebase.firestore.FieldValue.delete(),
+        contents: firebase.firestore.FieldValue.delete()
+      }).then(() => {
+        alert("🗑️ 스케줄 제거 완료");
+        loadProfiles();
       });
     }
 
@@ -185,41 +187,110 @@
       }).then(() => {
         document.getElementById("profile-status").innerText = "✅ 프로필 등록 완료!";
         document.getElementById("profileNameInput").value = "";
-        loadProfiles(user);
+        loadProfiles();
       });
     }
 
-    function deleteProfile(docId) {
-      const user = firebase.auth().currentUser;
-      if (!confirm("정말 이 프로필을 삭제하시겠습니까?")) return;
-      db.collection("profiles").doc(docId).delete().then(() => {
-        alert("✅ 프로필 삭제 완료!");
-        loadProfiles(user);
-      });
-    }
-
-    function loadProfiles(user) {
+    function loadProfiles() {
       const list = document.getElementById("profileList");
+      const user = firebase.auth().currentUser;
+      if (!user) return;
       list.innerHTML = "";
       db.collection("profiles").where("userID", "==", user.uid).get().then(snapshot => {
-        list.innerHTML = `<h3 class="font-semibold mb-2">총 ${snapshot.size}개의 프로필 등록됨</h3>`;
+        list.innerHTML = `<p class="mb-2 font-bold">총 ${snapshot.size}개의 프로필 등록됨</p>`;
         snapshot.forEach(doc => {
           const data = doc.data();
-          const div = document.createElement("div");
-          div.className = `p-2 mb-2 rounded text-white flex justify-between items-center ${data.schedule ? 'bg-green-500' : 'bg-gray-400'}`;
-          div.innerHTML = `
-            <span>${data.profileName} (${data.schedule ? '스케줄 있음' : '없음'})</span>
-            <button onclick="deleteProfile('${doc.id}')" class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs">삭제</button>
-          `;
-          list.appendChild(div);
+          const container = document.createElement("div");
+          container.className = `flex items-center justify-between p-2 mb-2 rounded text-white ${data.schedule ? 'bg-green-500' : 'bg-gray-400'}`;
+
+          const name = document.createElement("span");
+          name.textContent = `${data.profileName} (${data.schedule ? '스케줄 있음' : '스케줄 없음'})`;
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "삭제";
+          deleteBtn.className = "bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded";
+          deleteBtn.onclick = () => deleteProfile(doc.id);
+
+          container.appendChild(name);
+          container.appendChild(deleteBtn);
+
+          if (data.schedule) {
+            const clearBtn = document.createElement("button");
+            clearBtn.textContent = "스케줄 삭제";
+            clearBtn.className = "bg-gray-700 hover:bg-gray-800 text-white text-xs px-2 py-1 ml-2 rounded";
+            clearBtn.onclick = () => clearSchedule(doc.id);
+            container.appendChild(clearBtn);
+          }
+
+          list.appendChild(container);
         });
+      });
+    }
+
+    function deleteProfile(profileId) {
+      if (!confirm("정말 이 프로필을 삭제하시겠습니까?")) return;
+      db.collection("profiles").doc(profileId).delete().then(() => {
+        alert("🗑️ 프로필 삭제 완료");
+        loadProfiles();
+      }).catch(error => {
+        alert("삭제 중 오류 발생: " + error.message);
+      });
+    }
+
+    function populateProfileSelect(selectId) {
+      const select = document.getElementById(selectId);
+      const user = firebase.auth().currentUser;
+      if (!select || !user) return;
+      db.collection("profiles").where("userID", "==", user.uid).get().then(snapshot => {
+        select.innerHTML = "";
+        snapshot.forEach(doc => {
+          const option = document.createElement("option");
+          option.value = doc.id;
+          option.textContent = doc.data().profileName;
+          select.appendChild(option);
+        });
+      });
+    }
+
+    function loadContents(user) {
+      const gallery = document.getElementById("contentGallery");
+      if (!gallery) return;
+      db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
+        gallery.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const card = document.createElement("div");
+          card.className = "bg-white rounded shadow p-3 relative";
+          card.innerHTML = `
+            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
+            <h4 class="font-bold">${data.title}</h4>
+            <p class="text-sm text-gray-600 mb-2">${data.description}</p>
+            <button onclick="deleteContent('${doc.id}', '${data.fileName}')" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded">삭제</button>
+          `;
+          gallery.appendChild(card);
+        });
+      });
+    }
+
+    function deleteContent(docId, fileName) {
+      if (!confirm("이 콘텐츠를 삭제하시겠습니까?")) return;
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      db.collection("contents").doc(docId).delete().then(() => {
+        return storage.ref("contents/" + fileName).delete();
+      }).then(() => {
+        alert("✅ 콘텐츠 삭제 완료!");
+        loadContents(user);
+        loadScheduleContents(user);
+      }).catch(error => {
+        alert("삭제 실패: " + error.message);
       });
     }
 
     function loadScheduleContents(user) {
       const scheduleGallery = document.getElementById("scheduleGallery");
       if (!scheduleGallery) return;
-      db.collection("contents").where("userID", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
+      db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
         scheduleGallery.innerHTML = "";
         snapshot.forEach(doc => {
           const data = doc.data();
@@ -234,50 +305,11 @@
             <input type="datetime-local" class="border p-1 w-full mb-1" id="end-${doc.id}" />
             <label class="text-sm block">프로필 선택</label>
             <select id="profile-${doc.id}" class="border p-1 w-full mb-2"></select>
-            <button onclick="saveSchedule('${doc.id}', '${data.fileUrl}')" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm">스케줄 저장</button>
+            <button onclick="saveSchedule('${doc.id}')" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm">스케줄 저장</button>
           `;
           scheduleGallery.appendChild(card);
-          populateProfileSelect(`profile-${doc.id}`, user);
+          populateProfileSelect(`profile-${doc.id}`);
         });
-      });
-    }
-
-    function populateProfileSelect(selectId, user) {
-      const select = document.getElementById(selectId);
-      if (!select) return;
-      db.collection("profiles").where("userID", "==", user.uid).get().then(snapshot => {
-        select.innerHTML = "";
-        snapshot.forEach(doc => {
-          const option = document.createElement("option");
-          option.value = doc.id;
-          option.textContent = doc.data().profileName;
-          select.appendChild(option);
-        });
-      });
-    }
-
-    function saveSchedule(contentId, fileUrl) {
-      const start = new Date(document.getElementById(`start-${contentId}`).value);
-      const end = new Date(document.getElementById(`end-${contentId}`).value);
-      const profileId = document.getElementById(`profile-${contentId}`).value;
-      const user = firebase.auth().currentUser;
-      if (!start || !end || !profileId || !user) return alert("모든 값을 입력하세요.");
-      db.collection("schedules").add({
-        contentId,
-        profileId,
-        startDate: firebase.firestore.Timestamp.fromDate(start),
-        endDate: firebase.firestore.Timestamp.fromDate(end),
-        userID: user.uid,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        db.collection("profiles").doc(profileId).update({
-          schedule: true,
-          start: firebase.firestore.Timestamp.fromDate(start),
-          end: firebase.firestore.Timestamp.fromDate(end),
-          contents: fileUrl
-        });
-        alert("✅ 스케줄 저장 완료!");
-        loadProfiles(user);
       });
     }
   </script>
