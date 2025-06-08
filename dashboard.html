@@ -134,6 +134,57 @@
       });
     }
 
+    function saveSchedule(contentId) {
+      const start = new Date(document.getElementById(`start-${contentId}`).value);
+      const end = new Date(document.getElementById(`end-${contentId}`).value);
+      const profileId = document.getElementById(`profile-${contentId}`).value;
+      const user = firebase.auth().currentUser;
+      if (!start || !end || !profileId || !user) return alert("모든 값을 입력하세요.");
+
+      db.collection("profiles").doc(profileId).update({
+        schedule: true,
+        start: firebase.firestore.Timestamp.fromDate(start),
+        end: firebase.firestore.Timestamp.fromDate(end),
+        contents: contentId
+      }).then(() => {
+        alert("✅ 스케줄 저장 완료!");
+        loadProfiles();
+      });
+    }
+
+    function clearSchedule(profileId) {
+      db.collection("profiles").doc(profileId).update({
+        schedule: false,
+        start: firebase.firestore.FieldValue.delete(),
+        end: firebase.firestore.FieldValue.delete(),
+        contents: firebase.firestore.FieldValue.delete()
+      }).then(() => {
+        alert("🗑️ 스케줄 제거 완료");
+        loadProfiles();
+      });
+    }
+
+    function deleteContent(docId, fileName) {
+      if (!confirm("이 콘텐츠를 삭제하시겠습니까?")) return;
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      db.collection("contents").doc(docId).delete().then(() => {
+        return storage.ref("contents/" + fileName).delete();
+      }).then(() => {
+        alert("✅ 콘텐츠 삭제 완료!");
+        loadContents(user);
+        loadScheduleContents(user);
+      }).catch(error => {
+        if (error.code === 'storage/object-not-found') {
+          alert("⚠️ 이미 삭제된 콘텐츠입니다. Firestore 기록만 삭제되었습니다.");
+          loadContents(user);
+          loadScheduleContents(user);
+        } else {
+          alert("삭제 실패: " + error.message);
+        }
+      });
+    }
+
     function loadContents(user) {
       const gallery = document.getElementById("contentGallery");
       if (!gallery) return;
