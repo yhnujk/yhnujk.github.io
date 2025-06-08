@@ -139,10 +139,12 @@
 
     function registerProfile() {
       const profileName = document.getElementById("profileNameInput").value.trim();
-      if (!profileName) return alert("프로필 이름을 입력해주세요.");
+      const user = firebase.auth().currentUser;
+      if (!profileName || !user) return alert("프로필 이름을 입력해주세요.");
       db.collection("profiles").add({
         profileName,
         schedule: false,
+        userId: user.uid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
         document.getElementById("profile-status").innerText = "✅ 프로필 등록 완료!";
@@ -153,12 +155,13 @@
 
     function loadProfiles() {
       const list = document.getElementById("profileList");
+      const user = firebase.auth().currentUser;
+      if (!user) return;
       list.innerHTML = "";
-      db.collection("profiles").get().then(snapshot => {
+      db.collection("profiles").where("userId", "==", user.uid).get().then(snapshot => {
         list.innerHTML = `<p class="mb-2 font-bold">총 ${snapshot.size}개의 프로필 등록됨</p>`;
         snapshot.forEach(doc => {
           const data = doc.data();
-
           const container = document.createElement("div");
           container.className = `flex items-center justify-between p-2 mb-2 rounded text-white ${data.schedule ? 'bg-green-500' : 'bg-gray-400'}`;
 
@@ -184,6 +187,21 @@
         loadProfiles();
       }).catch(error => {
         alert("삭제 중 오류 발생: " + error.message);
+      });
+    }
+
+    function populateProfileSelect(selectId) {
+      const select = document.getElementById(selectId);
+      const user = firebase.auth().currentUser;
+      if (!select || !user) return;
+      db.collection("profiles").where("userId", "==", user.uid).get().then(snapshot => {
+        select.innerHTML = "";
+        snapshot.forEach(doc => {
+          const option = document.createElement("option");
+          option.value = doc.id;
+          option.textContent = doc.data().profileName;
+          select.appendChild(option);
+        });
       });
     }
 
@@ -228,20 +246,6 @@
           `;
           scheduleGallery.appendChild(card);
           populateProfileSelect(`profile-${doc.id}`);
-        });
-      });
-    }
-
-    function populateProfileSelect(selectId) {
-      const select = document.getElementById(selectId);
-      if (!select) return;
-      db.collection("profiles").get().then(snapshot => {
-        select.innerHTML = "";
-        snapshot.forEach(doc => {
-          const option = document.createElement("option");
-          option.value = doc.id;
-          option.textContent = doc.data().profileName;
-          select.appendChild(option);
         });
       });
     }
