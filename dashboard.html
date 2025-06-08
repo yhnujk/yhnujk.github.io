@@ -38,7 +38,6 @@
           <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
           <p id="upload-status" class="text-sm mt-2"></p>
         </div>
-        <!-- 콘텐츠 갤러리 (등록창에서만 노출) -->
         <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
 
@@ -103,7 +102,7 @@
       document.getElementById("profileForm").classList.toggle("hidden");
       document.getElementById("uploadForm").classList.add("hidden");
       document.getElementById("scheduleForm").classList.add("hidden");
-      loadProfiles(); // 갱신
+      loadProfiles();
     }
 
     function uploadFile() {
@@ -139,11 +138,11 @@
     }
 
     function registerProfile() {
-      const name = document.getElementById("profileNameInput").value.trim();
-      if (!name) return alert("프로필 이름을 입력해주세요.");
+      const profileName = document.getElementById("profileNameInput").value.trim();
+      if (!profileName) return alert("프로필 이름을 입력해주세요.");
       db.collection("profiles").add({
-        name,
-        status: "off",
+        profileName,
+        schedule: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
         document.getElementById("profile-status").innerText = "✅ 프로필 등록 완료!";
@@ -159,11 +158,32 @@
         list.innerHTML = `<p class="mb-2 font-bold">총 ${snapshot.size}개의 프로필 등록됨</p>`;
         snapshot.forEach(doc => {
           const data = doc.data();
-          const div = document.createElement("div");
-          div.className = `p-2 mb-2 rounded text-white ${data.status === "on" ? 'bg-green-500' : 'bg-gray-400'}`;
-          div.textContent = data.name + (data.status === "on" ? " (ON)" : " (OFF)");
-          list.appendChild(div);
+
+          const container = document.createElement("div");
+          container.className = `flex items-center justify-between p-2 mb-2 rounded text-white ${data.schedule ? 'bg-green-500' : 'bg-gray-400'}`;
+
+          const name = document.createElement("span");
+          name.textContent = `${data.profileName} (${data.schedule ? '스케줄 있음' : '스케줄 없음'})`;
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "삭제";
+          deleteBtn.className = "bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded";
+          deleteBtn.onclick = () => deleteProfile(doc.id);
+
+          container.appendChild(name);
+          container.appendChild(deleteBtn);
+          list.appendChild(container);
         });
+      });
+    }
+
+    function deleteProfile(profileId) {
+      if (!confirm("정말 이 프로필을 삭제하시겠습니까?")) return;
+      db.collection("profiles").doc(profileId).delete().then(() => {
+        alert("🗑️ 프로필 삭제 완료");
+        loadProfiles();
+      }).catch(error => {
+        alert("삭제 중 오류 발생: " + error.message);
       });
     }
 
@@ -220,7 +240,7 @@
         snapshot.forEach(doc => {
           const option = document.createElement("option");
           option.value = doc.id;
-          option.textContent = doc.data().name;
+          option.textContent = doc.data().profileName;
           select.appendChild(option);
         });
       });
@@ -232,6 +252,7 @@
       const profileId = document.getElementById(`profile-${contentId}`).value;
       const user = firebase.auth().currentUser;
       if (!start || !end || !profileId || !user) return alert("모든 값을 입력하세요.");
+
       db.collection("schedules").add({
         contentId,
         profileId,
@@ -239,7 +260,11 @@
         endDate: firebase.firestore.Timestamp.fromDate(end),
         userId: user.uid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => alert("✅ 스케줄 저장 완료!"));
+      }).then(() => {
+        db.collection("profiles").doc(profileId).update({ schedule: true });
+        alert("✅ 스케줄 저장 완료!");
+        loadProfiles();
+      });
     }
   </script>
 </body>
