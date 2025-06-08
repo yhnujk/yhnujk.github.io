@@ -22,8 +22,8 @@
       <img src="로고.jpg" alt="로고" class="w-24 h-24 object-contain rounded-full" />
       <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full">로그아웃</button>
       <button onclick="toggleUploadForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">콘텐츠 등록</button>
-      <button onclick="toggleScheduleForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
       <button onclick="toggleProfileForm()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full">프로필 등록</button>
+      <button onclick="toggleScheduleForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
     </aside>
 
     <main class="flex-1 p-6 overflow-y-auto">
@@ -44,20 +44,14 @@
         <div class="bg-white p-4 rounded shadow mb-6 max-w-lg">
           <label class="block text-sm font-semibold mb-1">콘텐츠 선택</label>
           <select id="schedule-content" class="border p-2 rounded w-full mb-2"></select>
-
           <label class="block text-sm font-semibold mb-1">프로필 선택</label>
           <select id="schedule-profile" class="border p-2 rounded w-full mb-2"></select>
-
           <label class="block text-sm font-semibold mb-1">노출 시작일시</label>
           <input type="datetime-local" id="schedule-start" class="border p-2 rounded w-full mb-2" />
-
           <label class="block text-sm font-semibold mb-1">노출 종료일시</label>
           <input type="datetime-local" id="schedule-end" class="border p-2 rounded w-full mb-2" />
-
           <button onclick="saveSchedule()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded w-full">스케줄 저장</button>
         </div>
-
-        <!-- ✅ 등록된 스케줄 표시 영역 -->
         <div id="activeSchedules" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
 
@@ -79,17 +73,31 @@
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
-      authDomain: "capstone-cms-ee242.firebaseapp.com",
-      projectId: "capstone-cms-ee242",
-      storageBucket: "capstone-cms-ee242.firebasestorage.app",
-      messagingSenderId: "854989357781",
-      appId: "1:854989357781:web:f204fe38859cfc57e1585c"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
+
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      console.log("✅ 로그인됨:", user.email);
+      loadContents();
+      loadProfiles();
+      populateContentSelect();
+      populateProfileSelect('schedule-profile');
+      loadSchedules();
+    } else {
+      console.log("⛔ 로그인 안됨, index로 이동");
+      window.location.href = "index.html";
+    }
+  });
+  
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const storage = firebase.storage();
-
     firebase.auth().onAuthStateChanged(user => {
       if (!user) return window.location.href = "index.html";
       loadContents(user);
@@ -115,7 +123,7 @@
       document.getElementById("profileForm").classList.add("hidden");
       populateContentSelect();
       populateProfileSelect('schedule-profile');
-      loadSchedules(); // ✅ 추가
+      loadSchedules();
     }
 
     function toggleProfileForm() {
@@ -125,101 +133,13 @@
       loadProfiles();
     }
 
-    function populateContentSelect() {
-      const select = document.getElementById("schedule-content");
-      const user = firebase.auth().currentUser;
-      if (!select || !user) return;
-      db.collection("contents").where("userId", "==", user.uid).get().then(snapshot => {
-        select.innerHTML = "";
-        snapshot.forEach(doc => {
-          const option = document.createElement("option");
-          option.value = doc.id;
-          option.textContent = doc.data().title;
-          select.appendChild(option);
-        });
-      });
-    }
-
-    function populateProfileSelect(selectId) {
-      const select = document.getElementById(selectId);
-      const user = firebase.auth().currentUser;
-      if (!select || !user) return;
-      db.collection("profiles").where("userID", "==", user.uid).get().then(snapshot => {
-        select.innerHTML = "";
-        snapshot.forEach(doc => {
-          const option = document.createElement("option");
-          option.value = doc.id;
-          option.textContent = doc.data().profileName;
-          select.appendChild(option);
-        });
-      });
-    }
-
-    function saveSchedule() {
-      const contentId = document.getElementById("schedule-content").value;
-      const profileId = document.getElementById("schedule-profile").value;
-      const start = new Date(document.getElementById("schedule-start").value);
-      const end = new Date(document.getElementById("schedule-end").value);
-      const user = firebase.auth().currentUser;
-
-      if (!contentId || !profileId || !start || !end || !user) return alert("모든 값을 입력하세요.");
-
-      db.collection("profiles").doc(profileId).update({
-        schedule: true,
-        start: firebase.firestore.Timestamp.fromDate(start),
-        end: firebase.firestore.Timestamp.fromDate(end),
-        contents: contentId
-      }).then(() => {
-        alert("✅ 스케줄 저장 완료!");
-        loadProfiles();
-        loadSchedules(); // ✅ 저장 후 반영
-      });
-    }
-
-    function loadSchedules() {
-      const container = document.getElementById("activeSchedules");
-      const user = firebase.auth().currentUser;
-      if (!user || !container) return;
-
-      container.innerHTML = "";
-
-      db.collection("profiles").where("userID", "==", user.uid).where("schedule", "==", true).get()
-        .then(profileSnapshot => {
-          if (profileSnapshot.empty) {
-            container.innerHTML = "<p class='text-gray-500'>등록된 스케줄이 없습니다.</p>";
-            return;
-          }
-
-          profileSnapshot.forEach(profileDoc => {
-            const profileData = profileDoc.data();
-            const contentId = profileData.contents;
-
-            if (!contentId) return;
-
-            db.collection("contents").doc(contentId).get().then(contentDoc => {
-              const contentData = contentDoc.data();
-              const card = document.createElement("div");
-              card.className = "bg-white rounded shadow p-3";
-
-              card.innerHTML = `
-                <img src="${contentData?.fileUrl || ''}" class="w-full h-40 object-cover rounded mb-2" />
-                <h4 class="font-bold text-lg">${contentData?.title || '제목 없음'}</h4>
-                <p class="text-sm text-gray-600 mb-1">노출 기간: ${profileData.start.toDate().toLocaleString()} ~ ${profileData.end.toDate().toLocaleString()}</p>
-                <p class="text-sm text-gray-800">프로필: ${profileData.profileName}</p>
-              `;
-
-              container.appendChild(card);
-            });
-          });
-        });
-    }
-
     function uploadFile() {
       const file = document.getElementById("fileInput").files[0];
       const title = document.getElementById("title").value;
       const description = document.getElementById("description").value;
       const user = firebase.auth().currentUser;
       if (!file || !title || !description || !user) return alert("모든 항목을 입력해주세요.");
+
       const storageRef = storage.ref("contents/" + file.name);
       const uploadTask = storageRef.put(file);
 
@@ -299,7 +219,6 @@
         loadProfiles();
       });
     }
-
     function loadProfiles() {
       const list = document.getElementById("profileList");
       const user = firebase.auth().currentUser;
@@ -357,6 +276,97 @@
         loadProfiles();
         loadSchedules();
       });
+    }
+
+    function populateContentSelect() {
+      const select = document.getElementById("schedule-content");
+      const user = firebase.auth().currentUser;
+      if (!select || !user) return;
+      db.collection("contents").where("userId", "==", user.uid).get().then(snapshot => {
+        select.innerHTML = "";
+        snapshot.forEach(doc => {
+          const option = document.createElement("option");
+          option.value = doc.id;
+          option.textContent = doc.data().title;
+          select.appendChild(option);
+        });
+      });
+    }
+
+    function populateProfileSelect(selectId) {
+      const select = document.getElementById(selectId);
+      const user = firebase.auth().currentUser;
+      if (!select || !user) return;
+      db.collection("profiles").where("userID", "==", user.uid).get().then(snapshot => {
+        select.innerHTML = "";
+        snapshot.forEach(doc => {
+          const option = document.createElement("option");
+          option.value = doc.id;
+          option.textContent = doc.data().profileName;
+          select.appendChild(option);
+        });
+      });
+    }
+
+    function saveSchedule() {
+      const contentId = document.getElementById("schedule-content").value;
+      const profileId = document.getElementById("schedule-profile").value;
+      const start = new Date(document.getElementById("schedule-start").value);
+      const end = new Date(document.getElementById("schedule-end").value);
+      const user = firebase.auth().currentUser;
+
+      if (!contentId || !profileId || !start || !end || !user) return alert("모든 값을 입력하세요.");
+
+      db.collection("profiles").doc(profileId).update({
+        schedule: true,
+        start: firebase.firestore.Timestamp.fromDate(start),
+        end: firebase.firestore.Timestamp.fromDate(end),
+        contents: contentId
+      }).then(() => {
+        alert("✅ 스케줄 저장 완료!");
+        loadProfiles();
+        populateProfileSelect("schedule-profile");
+        loadSchedules();
+      });
+    }
+
+    function loadSchedules() {
+      const container = document.getElementById("activeSchedules");
+      const user = firebase.auth().currentUser;
+      if (!user || !container) return;
+
+      container.innerHTML = "";
+
+      db.collection("profiles").where("userID", "==", user.uid).where("schedule", "==", true).get()
+        .then(profileSnapshot => {
+          if (profileSnapshot.empty) {
+            container.innerHTML = "<p class='text-gray-500'>등록된 스케줄이 없습니다.</p>";
+            return;
+          }
+
+          profileSnapshot.forEach(profileDoc => {
+            const profileData = profileDoc.data();
+            const contentId = profileData.contents;
+
+            if (!contentId) return;
+
+            db.collection("contents").doc(contentId).get().then(contentDoc => {
+              const contentData = contentDoc.data();
+              const card = document.createElement("div");
+              card.className = "bg-white rounded shadow p-3";
+
+              card.innerHTML = `
+                <img src="${contentData?.fileUrl || ''}" class="w-full h-40 object-cover rounded mb-2" />
+                <h4 class="font-bold text-lg">${contentData?.title || '제목 없음'}</h4>
+                <p class="text-sm text-gray-600 mb-1">시작: ${profileData.start.toDate().toLocaleString()}</p>
+                <p class="text-sm text-gray-600 mb-1">종료: ${profileData.end.toDate().toLocaleString()}</p>
+                <p class="text-sm text-gray-800">프로필: ${profileData.profileName}</p>
+              `;
+
+              container.appendChild(card);
+            });
+          });
+        });
     }
   </script>
 </body>
