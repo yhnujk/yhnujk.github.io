@@ -327,18 +327,38 @@
       const end = new Date(document.getElementById("schedule-end").value);
       const user = firebase.auth().currentUser;
 
-      if (!contentId || !profileId || !start || !end || !user) return alert("모든 값을 입력하세요.");
+      if (!contentId || !profileId || !start || !end || !user) {
+        return alert("모든 값을 입력하세요.");
+      }
 
-      db.collection("profiles").doc(profileId).update({
-        schedule: true,
-        start: firebase.firestore.Timestamp.fromDate(start),
-        end: firebase.firestore.Timestamp.fromDate(end),
-        contents: contentId
-      }).then(() => {
-        alert("✅ 스케줄 저장 완료!");
-        loadProfiles();
-        populateProfileSelect("schedule-profile");
-        loadSchedules();
+  // 스케줄 중복 확인
+      db.collection("profiles").doc(profileId).get().then(doc => {
+        const data = doc.data();
+        if (data.schedule && data.start && data.end) {
+          const existingStart = data.start.toDate();
+          const existingEnd = data.end.toDate();
+
+          const overlap =
+            (start < existingEnd && end > existingStart); // 시간 겹침 조건
+
+          if (overlap) {
+            alert("⚠️ 이미 해당 프로필에 중복되는 스케줄이 존재합니다.");
+            return;
+          }
+        }
+
+    // 중복이 없을 경우 저장 진행
+        return db.collection("profiles").doc(profileId).update({
+          schedule: true,
+          start: firebase.firestore.Timestamp.fromDate(start),
+          end: firebase.firestore.Timestamp.fromDate(end),
+          contents: contentId
+        }).then(() => {
+          alert("✅ 스케줄 저장 완료!");
+          loadProfiles();
+        });
+      }).catch(error => {
+        alert("❌ 스케줄 저장 중 오류 발생: " + error.message);
       });
     }
 
