@@ -19,22 +19,28 @@
 <body class="h-screen bg-gray-100 text-gray-800">
   <div class="flex h-full">
     <aside class="w-64 bg-white shadow-lg flex flex-col items-center py-6 px-4 gap-4">
-      <img src="\uB85C\uACE0.jpg" alt="\uB85C\uACE0" class="w-24 h-24 object-contain rounded-full" />
-      <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full">\uB85C\uADF8\uC544\uC6C3</button>
-      <button onclick="toggleUploadForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">\uCF58\uD150\uCE20 \uB4F1\uB85D</button>
-      <button onclick="toggleProfileForm()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full">\uD504\uB85C\uD544 \uB4F1\uB85D</button>
-      <button onclick="toggleScheduleForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">\uC2A4\uCF00\uC904 \uAD00\uB9AC</button>
+      <img src="로고.jpg" alt="로고" class="w-24 h-24 object-contain rounded-full" />
+      <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full">로그아웃</button>
+      <button onclick="toggleUploadForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">콘텐츠 등록</button>
+      <button onclick="toggleProfileForm()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full">프로필 등록</button>
+      <button onclick="toggleScheduleForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
     </aside>
 
     <main class="flex-1 p-6 overflow-y-auto">
-      <h1 class="text-2xl font-bold mb-4">CMS\uAD00\uB9AC \uCC3D</h1>
+      <h1 class="text-2xl font-bold mb-4">CMS관리 창</h1>
 
       <div id="uploadForm" class="hidden">...</div>
 
-      <!-- \uD504\uB85C\uD544 \uB4F1\uB85D -->
-      <div id="profileForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">...</div>
+      <!-- 프로필 등록 -->
+      <div id="profileForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
+        <h2 class="font-bold text-lg mb-2">프로필 등록</h2>
+        <input type="text" id="profileNameInput" placeholder="프로필 이름" class="border p-2 rounded w-full mb-2" />
+        <button onclick="registerProfile()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">등록</button>
+        <p id="profile-status" class="text-sm mt-2"></p>
+        <div id="profileList" class="mt-4"></div>
+      </div>
 
-      <!-- \uC2A4\uCF00\uC904 \uAD00\uB9AC -->
+      <!-- 스케줄 관리 -->
       <div id="scheduleForm" class="hidden">
         <div class="bg-white p-4 rounded shadow mb-6 max-w-lg">...</div>
         <div id="activeSchedules" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
@@ -42,12 +48,6 @@
     </main>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
-
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
