@@ -22,8 +22,8 @@
       <img src="로고.jpg" alt="로고" class="w-24 h-24 object-contain rounded-full" />
       <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full">로그아웃</button>
       <button onclick="toggleUploadForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full">콘텐츠 등록</button>
-      <button onclick="toggleProfileForm()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full">프로필 등록</button>
       <button onclick="toggleScheduleForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full">스케줄 관리</button>
+      <button onclick="toggleProfileForm()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full">프로필 등록</button>
     </aside>
 
     <main class="flex-1 p-6 overflow-y-auto">
@@ -56,6 +56,9 @@
 
           <button onclick="saveSchedule()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded w-full">스케줄 저장</button>
         </div>
+
+        <!-- ✅ 등록된 스케줄 표시 영역 -->
+        <div id="activeSchedules" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
 
       <div id="profileForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
@@ -68,6 +71,7 @@
     </main>
   </div>
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
@@ -92,6 +96,7 @@
       loadProfiles();
       populateContentSelect();
       populateProfileSelect('schedule-profile');
+      loadSchedules();
     });
 
     function logout() {
@@ -110,6 +115,7 @@
       document.getElementById("profileForm").classList.add("hidden");
       populateContentSelect();
       populateProfileSelect('schedule-profile');
+      loadSchedules(); // ✅ 추가
     }
 
     function toggleProfileForm() {
@@ -166,7 +172,46 @@
       }).then(() => {
         alert("✅ 스케줄 저장 완료!");
         loadProfiles();
+        loadSchedules(); // ✅ 저장 후 반영
       });
+    }
+
+    function loadSchedules() {
+      const container = document.getElementById("activeSchedules");
+      const user = firebase.auth().currentUser;
+      if (!user || !container) return;
+
+      container.innerHTML = "";
+
+      db.collection("profiles").where("userID", "==", user.uid).where("schedule", "==", true).get()
+        .then(profileSnapshot => {
+          if (profileSnapshot.empty) {
+            container.innerHTML = "<p class='text-gray-500'>등록된 스케줄이 없습니다.</p>";
+            return;
+          }
+
+          profileSnapshot.forEach(profileDoc => {
+            const profileData = profileDoc.data();
+            const contentId = profileData.contents;
+
+            if (!contentId) return;
+
+            db.collection("contents").doc(contentId).get().then(contentDoc => {
+              const contentData = contentDoc.data();
+              const card = document.createElement("div");
+              card.className = "bg-white rounded shadow p-3";
+
+              card.innerHTML = `
+                <img src="${contentData?.fileUrl || ''}" class="w-full h-40 object-cover rounded mb-2" />
+                <h4 class="font-bold text-lg">${contentData?.title || '제목 없음'}</h4>
+                <p class="text-sm text-gray-600 mb-1">노출 기간: ${profileData.start.toDate().toLocaleString()} ~ ${profileData.end.toDate().toLocaleString()}</p>
+                <p class="text-sm text-gray-800">프로필: ${profileData.profileName}</p>
+              `;
+
+              container.appendChild(card);
+            });
+          });
+        });
     }
 
     function uploadFile() {
@@ -310,6 +355,7 @@
       }).then(() => {
         alert("🗑️ 스케줄 제거 완료");
         loadProfiles();
+        loadSchedules();
       });
     }
   </script>
