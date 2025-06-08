@@ -1,3 +1,4 @@
+<!-- index.html: 로그인 페이지 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -30,48 +31,37 @@
     </div>
   </div>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script>
-    firebase.initializeApp({
+    const firebaseConfig = {
       apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
-      authDomain: "capstone-cms-ee242.firebaseapp.com",
-    });
+      authDomain: "capstone-cms-ee242.firebaseapp.com"
+    };
+    firebase.initializeApp(firebaseConfig);
 
     function showSignup() {
       document.getElementById("loginBox").classList.add("hidden");
       document.getElementById("signupBox").classList.remove("hidden");
     }
-
     function showLogin() {
       document.getElementById("signupBox").classList.add("hidden");
       document.getElementById("loginBox").classList.remove("hidden");
     }
-
     function login() {
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
-
       firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
         .then(() => firebase.auth().signInWithEmailAndPassword(email, password))
-        .then(() => {
-          // 세션 저장 완료 후 이동
-          location.href = "dashboard.html";
-        })
-        .catch(err => {
-          document.getElementById("loginError").innerText = err.message;
-        });
+        .then(() => setTimeout(() => location.href = "dashboard.html", 500))
+        .catch(err => document.getElementById("loginError").innerText = err.message);
     }
-
     function signup() {
       const email = document.getElementById("signupEmail").value;
       const password = document.getElementById("signupPassword").value;
       firebase.auth().createUserWithEmailAndPassword(email, password)
         .then(() => alert("회원가입 성공! 로그인 해주세요."))
-        .catch(err => {
-          document.getElementById("signupError").innerText = err.message;
-        });
+        .catch(err => document.getElementById("signupError").innerText = err.message);
     }
   </script>
 </body>
