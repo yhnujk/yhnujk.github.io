@@ -254,29 +254,47 @@
       const list = document.getElementById("profileList");
       const user = firebase.auth().currentUser;
       if (!user) return;
+
       list.innerHTML = "";
-      db.collection("profiles").where("userID", "==", user.uid).where("schedule", "==", false).get().then(snapshot => {
-        list.innerHTML = `<p class="mb-2 font-bold">총 ${snapshot.size}개의 프로필 등록됨</p>`;
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const container = document.createElement("div");
-          container.className = `flex items-center justify-between p-2 mb-2 rounded text-white ${data.schedule ? 'bg-green-500' : 'bg-gray-400'}`;
 
-          const name = document.createElement("span");
-          name.textContent = `${data.profileName} (${data.schedule ? '스케줄 있음' : '스케줄 없음'})`;
+      db.collection("profiles")
+        .where("userID", "==", user.uid)
+        .where("schedule", "==", false)
+        .get()
+        .then(snapshot => {
+          list.innerHTML = `<p class="mb-2 font-bold">총 ${snapshot.size}개의 프로필 등록됨</p>`;
 
-          const deleteBtn = document.createElement("button");
-          deleteBtn.textContent = "삭제";
-          deleteBtn.className = "bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded";
-          deleteBtn.onclick = () => deleteProfile(doc.id);
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const profileName = data.profileName;
 
-          container.appendChild(name);
-          container.appendChild(deleteBtn);
-          list.appendChild(container);
-        });
-      });
+        // 각 프로필마다 동일한 이름의 스케줄 문서가 있는지 확인
+            db.collection("profiles")
+              .where("userID", "==", user.uid)
+              .where("schedule", "==", true)
+              .where("profileName", "==", profileName)
+              .get()
+              .then(scheduleSnapshot => {
+                const hasSchedule = !scheduleSnapshot.empty;
+
+                const container = document.createElement("div");
+                container.className = `flex items-center justify-between p-2 mb-2 rounded text-white ${hasSchedule ? 'bg-green-500' : 'bg-gray-400'}`;
+
+                const name = document.createElement("span");
+                name.textContent = `${profileName} (${hasSchedule ? '스케줄 등록됨' : '스케줄 없음'})`;
+
+                const deleteBtn = document.createElement("button");
+               deleteBtn.textContent = "삭제";
+                deleteBtn.className = "bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded";
+                deleteBtn.onclick = () => deleteProfile(doc.id);
+
+                container.appendChild(name);
+                container.appendChild(deleteBtn);
+                list.appendChild(container);
+             });
+          });
+       });
     }
-
     function deleteProfile(profileId) {
       if (!confirm("정말 이 프로필을 삭제하시겠습니까?")) return;
       db.collection("profiles").doc(profileId).delete().then(() => {
