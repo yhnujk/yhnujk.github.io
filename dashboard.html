@@ -85,15 +85,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const storage = firebase.storage();
-    firebase.auth().onAuthStateChanged(user => {
-      if (!user) return window.location.href = "index.html";
-      loadContents(user);
-      loadProfiles();
-      populateContentSelect();
-      populateProfileSelect('schedule-profile');
-      loadSchedules();
-    });
-    
+
   firebase.auth().onAuthStateChanged(user => {
     if (user) {
       console.log("✅ 로그인됨:", user.email);
