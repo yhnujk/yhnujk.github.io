@@ -219,17 +219,36 @@
     function registerProfile() {
       const profileName = document.getElementById("profileNameInput").value.trim();
       const user = firebase.auth().currentUser;
+
       if (!profileName || !user) return alert("프로필 이름을 입력해주세요.");
-      db.collection("profiles").add({
-        profileName,
-        schedule: false,
-        userID: user.uid,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        document.getElementById("profile-status").innerText = "✅ 프로필 등록 완료!";
-        document.getElementById("profileNameInput").value = "";
-        loadProfiles();
-      });
+
+  // 중복 체크
+      db.collection("profiles")
+        .where("userID", "==", user.uid)
+        .where("schedule", "==", false)
+        .where("profileName", "==", profileName)
+        .get()
+        .then(snapshot => {
+          if (!snapshot.empty) {
+           alert("⚠️ 이미 존재하는 프로필 이름입니다.");
+           return;
+         }
+
+      // 중복이 아니라면 등록
+          db.collection("profiles").add({
+           profileName,
+           schedule: false,
+           userID: user.uid,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+         }).then(() => {
+            document.getElementById("profile-status").innerText = "✅ 프로필 등록 완료!";
+            document.getElementById("profileNameInput").value = "";
+           loadProfiles();
+          });
+        })
+       .catch(error => {
+          alert("❌ 프로필 등록 중 오류 발생: " + error.message);
+        });
     }
     function loadProfiles() {
       const list = document.getElementById("profileList");
