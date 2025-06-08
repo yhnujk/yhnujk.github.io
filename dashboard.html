@@ -137,18 +137,41 @@
       });
     }
 
-    function deleteContent(docId, fileName) {
-      if (!confirm("이 콘텐츠를 삭제하시겠습니까?")) return;
+    function saveSchedule(contentId) {
+      const start = new Date(document.getElementById(`start-${contentId}`).value);
+      const end = new Date(document.getElementById(`end-${contentId}`).value);
+      const profileId = document.getElementById(`profile-${contentId}`).value;
       const user = firebase.auth().currentUser;
-      if (!user) return;
-      db.collection("contents").doc(docId).delete().then(() => {
-        return storage.ref("contents/" + fileName).delete();
+      if (!start || !end || !profileId || !user) return alert("모든 값을 입력하세요.");
+
+      db.collection("schedules").add({
+        contentId,
+        profileId,
+        startDate: firebase.firestore.Timestamp.fromDate(start),
+        endDate: firebase.firestore.Timestamp.fromDate(end),
+        userId: user.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
-        alert("✅ 콘텐츠 삭제 완료!");
-        loadContents(user);
-        loadScheduleContents(user);
-      }).catch(error => {
-        alert("삭제 실패: " + error.message);
+        db.collection("profiles").doc(profileId).update({
+          schedule: true,
+          start: firebase.firestore.Timestamp.fromDate(start),
+          end: firebase.firestore.Timestamp.fromDate(end),
+          contents: contentId
+        });
+        alert("✅ 스케줄 저장 완료!");
+        loadProfiles();
+      });
+    }
+
+    function clearSchedule(profileId) {
+      db.collection("profiles").doc(profileId).update({
+        schedule: false,
+        start: firebase.firestore.FieldValue.delete(),
+        end: firebase.firestore.FieldValue.delete(),
+        contents: firebase.firestore.FieldValue.delete()
+      }).then(() => {
+        alert("🗑️ 스케줄 제거 완료");
+        loadProfiles();
       });
     }
 
@@ -190,6 +213,15 @@
 
           container.appendChild(name);
           container.appendChild(deleteBtn);
+
+          if (data.schedule) {
+            const clearBtn = document.createElement("button");
+            clearBtn.textContent = "스케줄 삭제";
+            clearBtn.className = "bg-gray-700 hover:bg-gray-800 text-white text-xs px-2 py-1 ml-2 rounded";
+            clearBtn.onclick = () => clearSchedule(doc.id);
+            container.appendChild(clearBtn);
+          }
+
           list.appendChild(container);
         });
       });
@@ -240,6 +272,21 @@
       });
     }
 
+    function deleteContent(docId, fileName) {
+      if (!confirm("이 콘텐츠를 삭제하시겠습니까?")) return;
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      db.collection("contents").doc(docId).delete().then(() => {
+        return storage.ref("contents/" + fileName).delete();
+      }).then(() => {
+        alert("✅ 콘텐츠 삭제 완료!");
+        loadContents(user);
+        loadScheduleContents(user);
+      }).catch(error => {
+        alert("삭제 실패: " + error.message);
+      });
+    }
+
     function loadScheduleContents(user) {
       const scheduleGallery = document.getElementById("scheduleGallery");
       if (!scheduleGallery) return;
@@ -263,27 +310,6 @@
           scheduleGallery.appendChild(card);
           populateProfileSelect(`profile-${doc.id}`);
         });
-      });
-    }
-
-    function saveSchedule(contentId) {
-      const start = new Date(document.getElementById(`start-${contentId}`).value);
-      const end = new Date(document.getElementById(`end-${contentId}`).value);
-      const profileId = document.getElementById(`profile-${contentId}`).value;
-      const user = firebase.auth().currentUser;
-      if (!start || !end || !profileId || !user) return alert("모든 값을 입력하세요.");
-
-      db.collection("schedules").add({
-        contentId,
-        profileId,
-        startDate: firebase.firestore.Timestamp.fromDate(start),
-        endDate: firebase.firestore.Timestamp.fromDate(end),
-        userId: user.uid,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        db.collection("profiles").doc(profileId).update({ schedule: true });
-        alert("✅ 스케줄 저장 완료!");
-        loadProfiles();
       });
     }
   </script>
