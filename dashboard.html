@@ -253,15 +253,6 @@
 
           container.appendChild(name);
           container.appendChild(deleteBtn);
-
-          if (data.schedule) {
-            const clearBtn = document.createElement("button");
-            clearBtn.textContent = "스케줄 삭제";
-            clearBtn.className = "bg-gray-700 hover:bg-gray-800 text-white text-xs px-2 py-1 ml-2 rounded";
-            clearBtn.onclick = () => clearSchedule(doc.id);
-            container.appendChild(clearBtn);
-          }
-
           list.appendChild(container);
         });
       });
@@ -331,37 +322,48 @@
         return alert("모든 값을 입력하세요.");
       }
 
-  // 스케줄 중복 확인
+  // 먼저 해당 프로필의 이름을 가져옴
       db.collection("profiles").doc(profileId).get().then(doc => {
-        const data = doc.data();
-        if (data.schedule && data.start && data.end) {
-          const existingStart = data.start.toDate();
-          const existingEnd = data.end.toDate();
+        const profileData = doc.data();
+        if (!profileData) return alert("프로필 정보를 찾을 수 없습니다.");
 
-          const overlap =
-            (start < existingEnd && end > existingStart); // 시간 겹침 조건
+        const profileName = profileData.profileName;
 
-          if (overlap) {
-            alert("⚠️ 이미 해당 프로필에 중복되는 스케줄이 존재합니다.");
-            return;
-          }
-        }
+    // 동일 profileName에 중복되는 스케줄이 있는지 확인
+        db.collection("profiles")
+          .where("schedule", "==", true)
+          .where("profileName", "==", profileName)
+          .get()
+          .then(snapshot => {
+            const overlap = snapshot.docs.some(doc => {
+              const data = doc.data();
+              const existingStart = data.start.toDate();
+              const existingEnd = data.end.toDate();
+              return (start < existingEnd && end > existingStart);
+            });
 
-    // 중복이 없을 경우 저장 진행
-        return db.collection("profiles").doc(profileId).update({
-          schedule: true,
-          start: firebase.firestore.Timestamp.fromDate(start),
-          end: firebase.firestore.Timestamp.fromDate(end),
-          contents: contentId
-        }).then(() => {
-          alert("✅ 스케줄 저장 완료!");
-          loadProfiles();
-        });
-      }).catch(error => {
-        alert("❌ 스케줄 저장 중 오류 발생: " + error.message);
+            if (overlap) {
+              alert("⚠️ 이미 해당 프로필에 겹치는 스케줄이 존재합니다.");
+              return;
+            }
+
+        // 스케줄 문서 새로 생성
+            return db.collection("profiles").add({
+              schedule: true,
+              profileName,
+              contents: contentId,
+              start: firebase.firestore.Timestamp.fromDate(start),
+              end: firebase.firestore.Timestamp.fromDate(end),
+              userID: user.uid,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+              alert("✅ 스케줄 저장 완료!");
+              loadSchedules();
+              loadProfiles(); // 프로필 수 재로딩 (옵션)
+            });
+          });
       });
     }
-
     function loadSchedules() {
       const container = document.getElementById("activeSchedules");
       const user = firebase.auth().currentUser;
@@ -369,36 +371,51 @@
 
       container.innerHTML = "";
 
-      db.collection("profiles").where("userID", "==", user.uid).where("schedule", "==", true).get()
-        .then(profileSnapshot => {
-          if (profileSnapshot.empty) {
+      db.collection("profiles")
+        .where("schedule", "==", true)
+        .where("userID", "==", user.uid)
+        .orderBy("start", "asc")
+        .get()
+        .then(snapshot => {
+          if (snapshot.empty) {
             container.innerHTML = "<p class='text-gray-500'>등록된 스케줄이 없습니다.</p>";
             return;
           }
 
-          profileSnapshot.forEach(profileDoc => {
-            const profileData = profileDoc.data();
-            const contentId = profileData.contents;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const scheduleId = doc.id;
 
-            if (!contentId) return;
-
-            db.collection("contents").doc(contentId).get().then(contentDoc => {
+            db.collection("contents").doc(data.contents).get().then(contentDoc => {
               const contentData = contentDoc.data();
+
               const card = document.createElement("div");
               card.className = "bg-white rounded shadow p-3";
 
               card.innerHTML = `
                 <img src="${contentData?.fileUrl || ''}" class="w-full h-40 object-cover rounded mb-2" />
                 <h4 class="font-bold text-lg">${contentData?.title || '제목 없음'}</h4>
-                <p class="text-sm text-gray-600 mb-1">시작: ${profileData.start.toDate().toLocaleString()}</p>
-                <p class="text-sm text-gray-600 mb-1">종료: ${profileData.end.toDate().toLocaleString()}</p>
-                <p class="text-sm text-gray-800">프로필: ${profileData.profileName}</p>
+                <p class="text-sm text-gray-600 mb-1">시작: ${data.start.toDate().toLocaleString()}</p>
+                <p class="text-sm text-gray-600 mb-1">종료: ${data.end.toDate().toLocaleString()}</p>
+                <p class="text-sm text-gray-800">프로필: ${data.profileName}</p>
+                <button onclick="deleteSchedule('${scheduleId}')" class="mt-2 bg-red-500 text-white px-2 py-1 text-sm rounded hover:bg-red-600">스케줄 삭제</button>
               `;
 
               container.appendChild(card);
             });
           });
         });
+    }
+
+    function deleteSchedule(scheduleId) {
+      if (!confirm("이 스케줄을 삭제하시겠습니까?")) return;
+
+      db.collection("profiles").doc(scheduleId).delete().then(() => {
+        alert("🗑️ 스케줄 삭제 완료");
+        loadSchedules();
+     }).catch(err => {
+        alert("❌ 삭제 실패: " + err.message);
+      });
     }
   </script>
 </body>
