@@ -109,6 +109,7 @@
       document.getElementById("uploadForm").classList.toggle("hidden");
       document.getElementById("scheduleForm").classList.add("hidden");
       document.getElementById("profileForm").classList.add("hidden");
+      document.getElementById("upload-status").innerText=""
     }
 
     function toggleScheduleForm() {
@@ -165,6 +166,9 @@
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
              }).then(() => {
                document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
+               setTimeout(() =>{
+                document.getElementById("status").innerText = "";
+               }, 3000);
                document.getElementById("fileInput").value = "";
                document.getElementById("title").value = "";
                document.getElementById("description").value = "";
