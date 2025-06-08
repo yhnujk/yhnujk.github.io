@@ -50,14 +50,113 @@
         </div>
       </div>
 
-      <!-- 콘텐츠 등록 폼 (생략됨: 필요한 경우 추가 제공 가능) -->
+      <!-- 콘텐츠 등록 폼 -->
+      <div id="uploadForm" class="hidden">
+        <div class="bg-white p-4 rounded shadow mb-6 max-w-lg">
+          <input type="file" id="fileInput" class="border p-2 rounded w-full mb-2" />
+          <input type="text" id="title" placeholder="제목" class="border p-2 rounded w-full mb-2" />
+          <input type="text" id="description" placeholder="설명" class="border p-2 rounded w-full mb-2" />
+          <button onclick="uploadFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">업로드</button>
+          <p id="upload-status" class="text-sm mt-2"></p>
+        </div>
+        <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+      </div>
 
-      <!-- 스케줄 관리 폼 (생략됨: 필요한 경우 추가 제공 가능) -->
-
+      <!-- 스케줄 관리 폼 -->
+      <div id="scheduleForm" class="hidden">
+        <div id="scheduleGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+      </div>
     </main>
   </div>
 
-  <!-- Firebase SDKs (생략됨) -->
-  <!-- Firebase 초기화, 기능 함수 정의 (생략됨) -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgIaSzr_emEvBgkw9vd5xFJVEzsi5uIY0",
+      authDomain: "capstone-cms-ee242.firebaseapp.com",
+      projectId: "capstone-cms-ee242",
+      storageBucket: "capstone-cms-ee242.firebasestorage.app",
+      messagingSenderId: "854989357781",
+      appId: "1:854989357781:web:f204fe38859cfc57e1585c"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) return window.location.href = "index.html";
+      loadContents(user);
+      loadScheduleContents(user);
+      loadProfiles();
+    });
+
+    function logout() {
+      firebase.auth().signOut().then(() => window.location.href = "index.html");
+    }
+
+    function toggleUploadForm() {
+      document.getElementById("uploadForm").classList.toggle("hidden");
+      document.getElementById("scheduleForm").classList.add("hidden");
+      document.getElementById("profileForm").classList.add("hidden");
+    }
+
+    function toggleScheduleForm() {
+      document.getElementById("scheduleForm").classList.toggle("hidden");
+      document.getElementById("uploadForm").classList.add("hidden");
+      document.getElementById("profileForm").classList.add("hidden");
+    }
+
+    function toggleProfileForm() {
+      document.getElementById("profileForm").classList.toggle("hidden");
+      document.getElementById("uploadForm").classList.add("hidden");
+      document.getElementById("scheduleForm").classList.add("hidden");
+      loadProfiles();
+    }
+
+    function registerProfile() {
+      const profileName = document.getElementById("profileNameInput").value.trim();
+      const user = firebase.auth().currentUser;
+      if (!profileName || !user) return alert("프로필 이름을 입력해주세요.");
+      db.collection("profiles").add({
+        profileName,
+        schedule: false,
+        USERID: user.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        document.getElementById("profile-status").innerText = "✅ 프로필 등록 완료!";
+        document.getElementById("profileNameInput").value = "";
+        loadProfiles();
+      });
+    }
+
+    function loadProfiles() {
+      const list = document.getElementById("profileList");
+      list.innerHTML = "";
+      const user = firebase.auth().currentUser;
+      db.collection("profiles").where("USERID", "==", user.uid).get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const div = document.createElement("div");
+          div.className = `p-2 rounded text-white flex justify-between items-center ${data.schedule ? 'bg-green-500' : 'bg-gray-400'}`;
+          div.innerHTML = `
+            <span>${data.profileName} (${data.schedule ? '스케줄 있음' : '스케줄 없음'})</span>
+            <button onclick="deleteProfile('${doc.id}')" class="text-sm bg-red-600 hover:bg-red-700 px-2 py-1 rounded">삭제</button>
+          `;
+          list.appendChild(div);
+        });
+      });
+    }
+
+    function deleteProfile(id) {
+      if (!confirm("정말 삭제하시겠습니까?")) return;
+      db.collection("profiles").doc(id).delete().then(() => {
+        loadProfiles();
+      });
+    }
+  </script>
 </body>
 </html>
