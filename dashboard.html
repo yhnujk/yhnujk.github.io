@@ -178,24 +178,30 @@
       });
     }
 
-    function loadContents(user) {
-      const gallery = document.getElementById("contentGallery");
-      if (!gallery) return;
-      db.collection("contents").where("userId", "==", user.uid).orderBy("createdAt", "desc").get().then(snapshot => {
-        gallery.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const card = document.createElement("div");
-          card.className = "bg-white rounded shadow p-3 relative";
-          card.innerHTML = `
-            <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
-            <h4 class="font-bold">${data.title}</h4>
-            <p class="text-sm text-gray-600 mb-2">${data.description}</p>
-            <button onclick="deleteContent('${doc.id}', '${data.fileName}')" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded">삭제</button>
-          `;
-          gallery.appendChild(card);
+    function loadContents() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        console.warn("❌ 사용자 인증이 안되어 있습니다.");
+        return;
+      }
+
+      const userId = user.uid;
+      console.log("✅ 콘텐츠 로드 시작, 사용자:", userId);
+
+  // 예시: Firestore에서 콘텐츠 불러오기
+      db.collection("contents")
+        .where("owner", "==", userId)
+        .get()
+        .then(snapshot => {
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            console.log("📁 콘텐츠:", data.title, data.description);
+        // 여기에 실제 콘텐츠를 화면에 표시하는 코드 삽입
+          });
+        })
+        .catch(err => {
+          console.error("🔥 콘텐츠 불러오기 실패:", err);
         });
-      });
     }
 
     function registerProfile() {
