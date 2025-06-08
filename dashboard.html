@@ -137,6 +137,21 @@
       });
     }
 
+    function deleteContent(docId, fileName) {
+      if (!confirm("이 콘텐츠를 삭제하시겠습니까?")) return;
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      db.collection("contents").doc(docId).delete().then(() => {
+        return storage.ref("contents/" + fileName).delete();
+      }).then(() => {
+        alert("✅ 콘텐츠 삭제 완료!");
+        loadContents(user);
+        loadScheduleContents(user);
+      }).catch(error => {
+        alert("삭제 실패: " + error.message);
+      });
+    }
+
     function registerProfile() {
       const profileName = document.getElementById("profileNameInput").value.trim();
       const user = firebase.auth().currentUser;
@@ -144,7 +159,7 @@
       db.collection("profiles").add({
         profileName,
         schedule: false,
-        userId: user.uid,
+        userID: user.uid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
         document.getElementById("profile-status").innerText = "✅ 프로필 등록 완료!";
@@ -158,7 +173,7 @@
       const user = firebase.auth().currentUser;
       if (!user) return;
       list.innerHTML = "";
-      db.collection("profiles").where("userId", "==", user.uid).get().then(snapshot => {
+      db.collection("profiles").where("userID", "==", user.uid).get().then(snapshot => {
         list.innerHTML = `<p class="mb-2 font-bold">총 ${snapshot.size}개의 프로필 등록됨</p>`;
         snapshot.forEach(doc => {
           const data = doc.data();
@@ -194,7 +209,7 @@
       const select = document.getElementById(selectId);
       const user = firebase.auth().currentUser;
       if (!select || !user) return;
-      db.collection("profiles").where("userId", "==", user.uid).get().then(snapshot => {
+      db.collection("profiles").where("userID", "==", user.uid).get().then(snapshot => {
         select.innerHTML = "";
         snapshot.forEach(doc => {
           const option = document.createElement("option");
@@ -213,11 +228,12 @@
         snapshot.forEach(doc => {
           const data = doc.data();
           const card = document.createElement("div");
-          card.className = "bg-white rounded shadow p-3";
+          card.className = "bg-white rounded shadow p-3 relative";
           card.innerHTML = `
             <img src="${data.fileUrl}" class="w-full h-40 object-cover rounded mb-2" />
             <h4 class="font-bold">${data.title}</h4>
-            <p class="text-sm text-gray-600">${data.description}</p>
+            <p class="text-sm text-gray-600 mb-2">${data.description}</p>
+            <button onclick="deleteContent('${doc.id}', '${data.fileName}')" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded">삭제</button>
           `;
           gallery.appendChild(card);
         });
