@@ -40,14 +40,6 @@
         <div id="contentGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
 
-      <div id="profileForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
-        <h2 class="font-bold text-lg mb-2">프로필 등록</h2>
-        <input type="text" id="profileNameInput" placeholder="프로필 이름" class="border p-2 rounded w-full mb-2" />
-        <button onclick="registerProfile()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">등록</button>
-        <p id="profile-status" class="text-sm mt-2"></p>
-        <div id="profileList" class="mt-4"></div>
-      </div>
-
       <div id="scheduleForm" class="hidden">
         <div class="bg-white p-4 rounded shadow mb-6 max-w-lg">
           <label class="block text-sm font-semibold mb-1">콘텐츠 선택</label>
@@ -61,6 +53,14 @@
           <button onclick="saveSchedule()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded w-full">스케줄 저장</button>
         </div>
         <div id="activeSchedules" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+      </div>
+
+      <div id="profileForm" class="hidden bg-white p-4 rounded shadow mb-6 max-w-lg">
+        <h2 class="font-bold text-lg mb-2">프로필 등록</h2>
+        <input type="text" id="profileNameInput" placeholder="프로필 이름" class="border p-2 rounded w-full mb-2" />
+        <button onclick="registerProfile()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">등록</button>
+        <p id="profile-status" class="text-sm mt-2"></p>
+        <div id="profileList" class="mt-4"></div>
       </div>
     </main>
   </div>
