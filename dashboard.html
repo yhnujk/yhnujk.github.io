@@ -129,34 +129,53 @@
 
     function uploadFile() {
       const file = document.getElementById("fileInput").files[0];
-      const title = document.getElementById("title").value;
-      const description = document.getElementById("description").value;
-      const user = firebase.auth().currentUser;
-      if (!file || !title || !description || !user) return alert("모든 항목을 입력해주세요.");
+     const title = document.getElementById("title").value.trim();
+     const description = document.getElementById("description").value;
+     const user = firebase.auth().currentUser;
 
-      const storageRef = storage.ref("contents/" + file.name);
-      const uploadTask = storageRef.put(file);
+      if (!file || !title || !description || !user) {
+       return alert("모든 항목을 입력해주세요.");
+     }
 
-      uploadTask.on("state_changed", null, (error) => {
-        document.getElementById("upload-status").innerText = "업로드 실패: " + error.message;
-      }, () => {
-        uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-          db.collection("contents").add({
-            title,
-            description,
-            fileName: file.name,
-            fileUrl: downloadURL,
-            userId: user.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          }).then(() => {
-            document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
-            document.getElementById("fileInput").value = "";
-            document.getElementById("title").value = "";
-            document.getElementById("description").value = "";
-            loadContents(user);
-          });
+  // 🔍 제목 중복 확인
+     db.collection("contents")
+       .where("userId", "==", user.uid)
+       .where("title", "==", title)
+       .get()
+        .then(snapshot => {
+          if (!snapshot.empty) {
+           alert("⚠️ 이미 같은 제목의 콘텐츠가 존재합니다.");
+            return;
+         }
+
+      // ✅ 중복이 아니면 업로드 진행
+          const storageRef = storage.ref("contents/" + file.name);
+          const uploadTask = storageRef.put(file);
+
+         uploadTask.on("state_changed", null, (error) => {
+            document.getElementById("upload-status").innerText = "업로드 실패: " + error.message;
+          }, () => {
+           uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+            db.collection("contents").add({
+               title,
+                description,
+                fileName: file.name,
+               fileUrl: downloadURL,
+                userId: user.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+             }).then(() => {
+               document.getElementById("upload-status").innerText = "✅ 업로드 완료!";
+               document.getElementById("fileInput").value = "";
+               document.getElementById("title").value = "";
+               document.getElementById("description").value = "";
+               loadContents(user);
+              });
+            });
+         });
+       })
+        .catch(error => {
+          alert("❌ 제목 중복 확인 중 오류 발생: " + error.message);
         });
-      });
     }
 
     function deleteContent(docId, fileName) {
@@ -357,6 +376,9 @@
 
       if (!contentId || !profileId || !start || !end || !user) {
         return alert("모든 값을 입력하세요.");
+      }
+      if (end <= start) {
+        return alert("⚠️ 종료일시는 시작일시보다 이후여야 합니다.");
       }
 
   // 먼저 해당 프로필의 이름을 가져옴
